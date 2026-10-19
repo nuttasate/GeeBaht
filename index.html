@@ -1,0 +1,3669 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GeeBaht (กี่บาท) - หารค่าซูชิสายพานกับเพื่อนแบบโปร</title>
+  
+  <!-- Google Fonts: Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Kanit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              300: '#fda4af',
+              400: '#fb7185',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- External Libraries: QRCode.js & html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea {
+      user-select: text;
+    }
+    body {
+      font-family: 'Kanit', sans-serif;
+      background-color: #f8fafc;
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+    /* Realistic Sushi Plate Ring Effect */
+    .plate-ring {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+    }
+    .plate-ring::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 1rem;
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      pointer-events: none;
+    }
+    .plate-ring:active {
+      transform: scale(0.95);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+    .badge-bounce {
+      animation: pulseBadge 0.25s ease-out;
+    }
+    /* Receipt zigzag edge */
+    .receipt-zigzag {
+      background: linear-gradient(-45deg, #ffffff 8px, transparent 0), linear-gradient(45deg, #ffffff 8px, transparent 0);
+      background-position: left-bottom;
+      background-repeat: repeat-x;
+      background-size: 16px 16px;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Main Mobile Container -->
+  <div id="app-shell" class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col relative overflow-x-hidden border-x border-slate-100">
+
+    <!-- Top Brand Header (Visible on Setup & Checkout) -->
+    <header id="main-header" class="bg-gradient-to-r from-brand-600 via-rose-600 to-orange-500 text-white px-5 pt-5 pb-4 shadow-md relative overflow-hidden">
+      <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 pointer-events-none"></div>
+      <div class="absolute right-12 -bottom-8 w-20 h-20 rounded-full bg-white/10 pointer-events-none"></div>
+      <div class="flex items-center justify-between relative z-10">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner border border-white/30">
+            🍣
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl font-bold tracking-tight leading-none">GeeBaht <span class="font-normal text-sm opacity-90">(กี่บาท)</span></h1>
+            </div>
+            <p class="text-xs text-rose-100 mt-0.5 font-light">ตัวช่วยหารค่าซูชิสายพานกับแก๊งเพื่อน</p>
+          </div>
+        </div>
+        <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
+          v1.0.0
+        </span>
+      </div>
+    </header>
+
+    <!-- ==========================================
+         SCREEN 1: SETUP & RESTAURANT SELECTION
+         ========================================== -->
+    <main id="screen-setup" class="flex-1 flex flex-col p-5 space-y-6 animate-pop">
+      
+      <!-- Active Session Resume Banner -->
+      <div id="active-session-banner" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-700 flex items-center justify-center text-xl shrink-0 mt-0.5">
+            🍽️
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amber-700 bg-amber-200/70 px-2 py-0.5 rounded-md">มีโต๊ะที่กำลังกินค้างอยู่!</span>
+              <span id="resume-summary-badge" class="text-xs font-bold text-amber-900"></span>
+            </div>
+            <h2 id="resume-restaurant-title" class="text-base font-bold text-slate-800 mt-1.5">ร้าน Sushiro</h2>
+            <p id="resume-details-text" class="text-xs text-slate-600 mt-0.5">สมาชิก 0 คน • บันทึกไว้แล้ว 0 จาน</p>
+            
+            <div class="grid grid-cols-2 gap-2.5 mt-3.5">
+              <button type="button" id="btn-resume-session" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-semibold py-2.5 px-3 rounded-xl text-sm shadow-sm flex items-center justify-center gap-1.5 transition">
+                <span>ทำต่อ (Resume)</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </button>
+              <button type="button" id="btn-new-table-banner" class="bg-white hover:bg-rose-50 active:scale-95 text-rose-600 border border-rose-200 font-medium py-2.5 px-3 rounded-xl text-sm flex items-center justify-center gap-1 transition">
+                <span>เริ่มโต๊ะใหม่</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Restaurant Selector -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <label for="select-restaurant" class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs flex items-center justify-center font-bold">1</span>
+            เลือกร้านซูชิสายพาน
+          </label>
+          <span id="restaurant-tax-pill" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+            + Service Charge 10% (ไม่มี VAT เพิ่ม)
+          </span>
+        </div>
+
+        <!-- Dropdown displaying clean brand names ONLY (No raw SC/VAT percentages in label text per spec) -->
+        <div class="relative">
+          <select id="select-restaurant" class="w-full appearance-none bg-slate-50 hover:bg-slate-100/80 border-2 border-slate-200 focus:border-brand-500 focus:bg-white rounded-2xl px-4 py-3.5 pr-10 text-base font-semibold text-slate-800 transition outline-none cursor-pointer shadow-sm">
+            <option value="sushiro">Sushiro</option>
+            <option value="hamasushi">Hamasushi</option>
+            <option value="katsumidori">Katsu Midori</option>
+            <option value="sushiexpress">Sushi Express / Sushi Plus</option>
+            <option value="custom">Custom</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+        </div>
+
+        <!-- Preview of Plate Prices for Selected Restaurant -->
+        <div id="restaurant-plates-preview" class="flex flex-wrap items-center gap-1.5 pt-1">
+          <!-- Populated dynamically by JS -->
+        </div>
+
+        <!-- Custom Restaurant Configuration Panel (Visible only when Custom is selected) -->
+        <div id="custom-restaurant-panel" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3.5 mt-2">
+          <div>
+            <label for="input-custom-plates" class="block text-xs font-semibold text-slate-700 mb-1">
+              ระบุราคาจาน (คั่นด้วยเครื่องหมายจุลภาค ,)
+            </label>
+            <input type="text" id="input-custom-plates" placeholder="เช่น 30, 40, 60, 80, 100, 120" value="30, 40, 60, 80, 100, 120"
+              class="w-full bg-white border border-slate-300 focus:border-brand-500 rounded-xl px-3.5 py-2 text-sm font-medium text-slate-800 outline-none" />
+            <p class="text-[11px] text-slate-500 mt-1">ระบบจะเรียงราคาจานจากน้อยไปมากให้อัตโนมัติ</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 pt-1">
+            <label class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 cursor-pointer">
+              <div>
+                <span class="block text-xs font-bold text-slate-800">Service Charge</span>
+                <span class="block text-[11px] text-slate-500">+10% ของราคาอาหาร</span>
+              </div>
+              <input type="checkbox" id="toggle-custom-sc" checked class="w-5 h-5 accent-brand-600 rounded cursor-pointer" />
+            </label>
+
+            <label class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 cursor-pointer">
+              <div>
+                <span class="block text-xs font-bold text-slate-800">VAT</span>
+                <span class="block text-[11px] text-slate-500">+7% (คิดแบบทบต้น)</span>
+              </div>
+              <input type="checkbox" id="toggle-custom-vat" checked class="w-5 h-5 accent-brand-600 rounded cursor-pointer" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Member Setup -->
+      <section class="space-y-3 flex-1 flex flex-col">
+        <div class="flex items-center justify-between">
+          <label for="input-member-name" class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs flex items-center justify-center font-bold">2</span>
+            รายชื่อสมาชิกร่วมโต๊ะ
+          </label>
+          <span id="member-count-badge" class="text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded-full">
+            0 คน
+          </span>
+        </div>
+
+        <!-- Add Member Form -->
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input type="text" id="input-member-name" placeholder="พิมพ์ชื่อเพื่อน เช่น ฟาง เชอร์ กุ๊ก" maxlength="150"
+              class="w-full bg-slate-50 focus:bg-white border-2 border-slate-200 focus:border-brand-500 rounded-2xl px-4 py-3 text-sm font-medium text-slate-800 outline-none transition" />
+          </div>
+          <button type="button" id="btn-add-member"
+            class="bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-semibold px-5 py-3 rounded-2xl text-sm shadow-sm transition shrink-0 flex items-center gap-1">
+            <span>+ เพิ่ม</span>
+          </button>
+        </div>
+
+        <!-- Quick Suggested Nicknames (Helps Real Users test or add fast) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <span class="text-[11px] text-slate-400 shrink-0">เพิ่มไว:</span>
+          <button type="button" data-quick-name="ตัวเอง (Host)" class="quick-name-btn text-[11px] bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 px-2.5 py-1 rounded-lg transition shrink-0">+ ตัวเอง (Host)</button>
+          <button type="button" data-quick-name="เพื่อน A" class="quick-name-btn text-[11px] bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 px-2.5 py-1 rounded-lg transition shrink-0">+ เพื่อน A</button>
+          <button type="button" data-quick-name="เพื่อน B" class="quick-name-btn text-[11px] bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 px-2.5 py-1 rounded-lg transition shrink-0">+ เพื่อน B</button>
+          <button type="button" data-quick-name="เพื่อน C" class="quick-name-btn text-[11px] bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 px-2.5 py-1 rounded-lg transition shrink-0">+ เพื่อน C</button>
+        </div>
+
+        <!-- Shared Pool Info Notice -->
+        <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-xs text-indigo-900">
+          <span class="text-base">🥢</span>
+          <span>ระบบมีตะกร้า <strong>"กองกลาง (Shared Pool)"</strong> ให้โดยอัตโนมัติ สำหรับเมนูที่สั่งมากินด้วยกันแล้วหารเท่า</span>
+        </div>
+
+        <!-- Member List Container -->
+        <div id="members-list-container" class="flex-1 min-h-[140px] bg-slate-50/70 border-2 border-dashed border-slate-200 rounded-2xl p-3.5 flex flex-col justify-center">
+          <!-- Empty state or Member Pills rendered by JS -->
+        </div>
+
+        <!-- Validation Error Alert -->
+        <p id="setup-error-msg" class="hidden text-xs font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2 text-center">
+          ⚠️ กรุณาเพิ่มสมาชิกอย่างน้อย 1 คนก่อนเริ่มนับจาน
+        </p>
+      </section>
+
+      <!-- Bottom CTA -->
+      <div class="pt-2 sticky bottom-0 bg-gradient-to-t from-white via-white to-white/90 pb-2">
+        <button type="button" id="btn-start-session"
+          class="w-full py-4 px-6 rounded-2xl font-bold text-base text-white shadow-lg shadow-brand-500/25 bg-gradient-to-r from-brand-600 to-orange-500 hover:from-brand-700 hover:to-orange-600 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none">
+          <span>เริ่มนับจานเลย 🚀</span>
+        </button>
+      </div>
+    </main>
+
+
+    <!-- ==========================================
+         SCREEN 2: COUNTER PAD
+         ========================================== -->
+    <main id="screen-counter" class="hidden flex-1 flex flex-col bg-slate-50">
+      
+      <!-- Sticky Top Bar -->
+      <div class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="px-4 py-3 flex items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span id="counter-restaurant-badge" class="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md border border-brand-100">Sushiro</span>
+              <span id="counter-total-plates-badge" class="text-xs font-medium text-slate-500">รวม 0 จาน</span>
+            </div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span class="text-xs text-slate-500">ค่าอาหารรวม:</span>
+              <span id="counter-live-net-total" class="text-2xl font-extrabold text-slate-900 tracking-tight">฿0.00</span>
+            </div>
+          </div>
+
+          <button type="button" id="btn-go-checkout"
+            class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl text-sm shadow-md shadow-emerald-500/20 flex items-center gap-1.5 transition shrink-0">
+            <span>เช็คบิล</span>
+            <span class="text-xs opacity-90 font-normal">(Checkout)</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <!-- Member Tabs (Horizontal Carousel) -->
+        <div class="px-3 pb-2.5 pt-1 bg-slate-50/70 border-t border-slate-100">
+          <div id="member-tabs-carousel" class="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
+            <!-- Populated dynamically: First tab is always '🥢 กองกลาง', followed by members -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Tab Status Strip -->
+      <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 truncate">
+          <span id="active-tab-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+          <span class="text-slate-300">กำลังนับให้:</span>
+          <strong id="active-tab-name-display" class="text-sm font-bold text-white truncate">🥢 กองกลาง</strong>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="active-tab-plates-summary" class="text-amber-300 font-semibold">0 จาน</span>
+          <span class="text-slate-600">|</span>
+          <span id="active-tab-subtotal-summary" class="font-bold text-sm text-emerald-400">฿0.00 <span class="text-[10px] font-normal text-slate-400">(รวมค่าอาหาร)</span></span>
+        </div>
+      </div>
+
+      <!-- Counter Content Area -->
+      <div class="p-4 space-y-5 flex-1">
+        
+        <!-- Plates Grid Section -->
+        <section class="space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <span>🍣 แตะที่จานเพื่อบวก (+1)</span>
+              </h2>
+              <span class="block text-[11px] text-slate-400">กดปุ่ม (− ลด 1) มุมซ้ายล่างของจานเพื่อลด</span>
+            </div>
+            <button type="button" id="btn-clear-active-plates" disabled
+              class="text-xs font-semibold px-3 py-1.5 rounded-xl border transition shrink-0 flex items-center gap-1 opacity-40 pointer-events-none bg-slate-100 text-slate-400 border-slate-200">
+              <span>🗑️ ล้างจานของคนนี้</span>
+            </button>
+          </div>
+
+          <div id="plates-grid" class="grid grid-cols-2 gap-3">
+            <!-- Plate cards dynamically rendered by JS -->
+          </div>
+        </section>
+
+        <!-- Special Items / Drinks / Desserts Section -->
+        <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <span>🍜 เมนูพิเศษ / น้ำดื่ม / ของหวาน</span>
+            </h3>
+            <span id="special-target-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+              ของ: กองกลาง
+            </span>
+          </div>
+
+          <!-- Quick Preset Chips for Real-User Convenience -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <span class="text-[11px] text-slate-400 shrink-0">จิ้มไว:</span>
+            <button type="button" data-preset-name="ชาเขียวรีฟิล" data-preset-price="40" class="preset-item-btn text-[11px] bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🍵 ชาเขียว ฿40</button>
+            <button type="button" data-preset-name="โค้ก/น้ำอัดลม" data-preset-price="40" class="preset-item-btn text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/60 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🥤 น้ำอัดลม ฿40</button>
+            <button type="button" data-preset-name="น้ำเปล่า" data-preset-price="20" class="preset-item-btn text-[11px] bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/60 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">💧 น้ำเปล่า ฿20</button>
+            <button type="button" data-preset-name="ราเมง/อุด้ง" data-preset-price="120" class="preset-item-btn text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/60 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🍜 ราเมง ฿120</button>
+            <button type="button" data-preset-name="ไอศกรีม/ของหวาน" data-preset-price="80" class="preset-item-btn text-[11px] bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🍨 ของหวาน ฿80</button>
+          </div>
+
+          <!-- Custom Special Item Input Row -->
+          <div class="flex gap-2">
+            <input type="text" id="input-special-name" placeholder="ชื่อเมนู เช่น พุดดิ้ง, เบียร์..." maxlength="30"
+              class="flex-1 min-w-0 bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-3 py-2.5 text-sm outline-none transition" />
+            <input type="number" id="input-special-price" placeholder="ราคา ฿" min="1" step="any" inputmode="decimal"
+              class="w-24 bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none transition" />
+            <button type="button" id="btn-add-special"
+              class="bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-semibold px-3.5 py-2.5 rounded-xl text-xs shrink-0 transition">
+              + เพิ่ม
+            </button>
+          </div>
+
+          <!-- Itemized Special Items List for Active Tab -->
+          <div id="special-items-list" class="space-y-1.5 pt-1">
+            <!-- Dynamically rendered -->
+          </div>
+        </section>
+
+        <!-- Bottom Navigation Actions (Matches top Checkout button label for consistency) -->
+        <div class="pt-2 pb-6 flex items-center justify-between gap-3">
+          <button type="button" id="btn-back-to-setup"
+            class="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200/90 py-3 px-4 rounded-2xl shadow-2xs active:scale-95 transition shrink-0">
+            <span>← แก้ไขรายชื่อ/ร้าน</span>
+          </button>
+
+          <button type="button" id="btn-go-checkout-bottom"
+            class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl text-sm shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 transition">
+            <span>เช็คบิล</span>
+            <span class="text-xs opacity-90 font-normal">(Checkout)</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </main>
+
+
+    <!-- ==========================================
+         SCREEN 3: CHECKOUT & SETTLEMENT
+         ========================================== -->
+    <main id="screen-checkout" class="hidden flex-1 flex flex-col bg-slate-100 p-4 space-y-3">
+      
+      <!-- Top Back Bar -->
+      <div class="flex items-center justify-between">
+        <button type="button" id="btn-back-to-counter" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl shadow-sm active:scale-95 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <span>กลับไปนับจานต่อ</span>
+        </button>
+
+        <span class="text-xs font-semibold text-slate-500">แตะชื่อเพื่อนเพื่อดู QR รายคน 💡</span>
+      </div>
+
+      <!-- Smart Collapsible Payer PromptPay Settings Card -->
+      <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <!-- Always-visible 1-line Header Bar -->
+        <div id="btn-toggle-pp-card" role="button" tabindex="0"
+          class="px-3.5 py-2.5 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50/80 transition select-none">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-6 h-6 rounded-lg bg-blue-600 text-white text-xs flex items-center justify-center font-bold shrink-0">฿</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-800">PromptPay (คนจ่ายเงิน)</span>
+                <span id="pp-saved-badge" class="hidden text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">จำค่าแล้ว</span>
+              </div>
+              <p id="pp-compact-summary" class="text-[11px] text-slate-500 truncate">ยังไม่ได้ระบุเบอร์รับเงิน • แตะเพื่อตั้งค่า</p>
+            </div>
+          </div>
+          <span id="pp-collapse-action-label" class="text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 shrink-0 transition">
+            ตั้งค่า ▾
+          </span>
+        </div>
+
+        <!-- Collapsible Form Body -->
+        <div id="pp-card-body" class="px-3.5 pb-3.5 pt-3 border-t border-slate-100 space-y-3 bg-slate-50/40">
+          <!-- Field 1: PromptPay ID (Mobile 10 digits or National ID 13 digits only) -->
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <label for="input-promptpay-id" class="block text-xs font-semibold text-slate-700 truncate">
+                เบอร์มือถือพร้อมเพย์ (10 หลัก) / บัตรประชาชน (13 หลัก)
+              </label>
+              <button type="button" id="btn-toggle-pp-visibility"
+                class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/80 hover:bg-blue-100/80 px-2 py-0.5 rounded-md border border-blue-200/70 whitespace-nowrap shrink-0 transition">
+                👁️ แสดงเลข
+              </button>
+            </div>
+            <input type="text" id="input-promptpay-id" inputmode="numeric" placeholder="เช่น 0812345678 หรือ 1100100123456" maxlength="17" autocomplete="off"
+              class="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 outline-none transition" />
+          </div>
+
+          <!-- Field 2: Account Name (Full width) -->
+          <div>
+            <label for="input-promptpay-name" class="block text-xs font-semibold text-slate-700 mb-1.5">
+              ชื่อบัญชีผู้รับเงิน (แสดงในสลิป)
+            </label>
+            <input type="text" id="input-promptpay-name" placeholder="เช่น ต้น (ไม่บังคับ)" maxlength="40"
+              class="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition" />
+          </div>
+
+          <!-- Validation Status & Action Footer -->
+          <div class="pt-1 border-t border-slate-200/60 space-y-2">
+            <p id="promptpay-validation-msg" class="text-[11px] text-slate-500 leading-relaxed">
+              💡 กรอกเบอร์มือถือพร้อมเพย์ 10 หลัก (06/08/09) หรือเลขบัตรประชาชน 13 หลัก เพื่อสร้าง QR Code ท้ายใบเสร็จ
+            </p>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" id="btn-clear-pp-data"
+                class="hidden text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl whitespace-nowrap shrink-0 transition">
+                🗑️ ล้างข้อมูล
+              </button>
+              <button type="button" id="btn-done-pp-card"
+                class="text-[11px] font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-xl whitespace-nowrap shrink-0 transition">
+                ✓ เสร็จสิ้น
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Global Discount Bar (Option B: Always ready, supports Fixed THB [Equal/Proportional] & Percent %, separated from PromptPay) -->
+      <section class="bg-white rounded-2xl px-3.5 py-2.5 border border-slate-200 shadow-sm space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <!-- Left: Label & Active Discount Pill -->
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-sm shrink-0">🏷️</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-slate-800">ส่วนลดท้ายบิล</span>
+                <span id="discount-summary-pill" class="hidden text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: 2-Mode Toggle (฿ vs %) + Input in 1 compact line -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <div class="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200/80">
+              <button type="button" id="btn-disc-type-fixed" data-disc-type="fixed"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-white text-slate-800 shadow-2xs">
+                ลด ฿
+              </button>
+              <button type="button" id="btn-disc-type-percent" data-disc-type="percent"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-500 hover:text-slate-800">
+                ลด %
+              </button>
+            </div>
+
+            <div class="relative w-24">
+              <input type="number" id="input-discount-value" min="0" step="any" inputmode="decimal" placeholder="0" value=""
+                class="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-brand-500 rounded-xl pl-2.5 pr-6 py-1.5 text-sm font-bold text-slate-800 text-right outline-none transition" />
+              <span id="discount-unit-label" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">฿</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contextual Sub-bar: Split Mode Toggle when 'fixed' (฿), or Smart Hint when 'percent' (%) -->
+        <div id="discount-split-mode-row" class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+          <span class="text-[11px] text-slate-500 font-medium">วิธีแบ่งส่วนลดเงินสด:</span>
+          <div class="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200/70">
+            <button type="button" id="btn-disc-split-equal"
+              class="px-2.5 py-0.5 rounded-md text-[11px] font-bold transition bg-white text-slate-800 shadow-2xs">
+              หารเท่ากันทุกคน
+            </button>
+            <button type="button" id="btn-disc-split-proportional"
+              class="px-2.5 py-0.5 rounded-md text-[11px] font-bold transition text-slate-500 hover:text-slate-800">
+              ตามสัดส่วนที่กิน
+            </button>
+          </div>
+        </div>
+
+        <p id="discount-percent-hint" class="hidden text-[10px] text-slate-500 pt-1 border-t border-slate-100 leading-normal">
+          💡 คิดตามสัดส่วนที่แต่ละคนกินอัตโนมัติ <span class="text-slate-400">(หากร้านลด % เฉพาะบางเมนู ให้ดูยอดบาทที่ลดจากใบเสร็จแล้วกรอกในโหมด "ลด ฿")</span>
+        </p>
+
+        <p id="discount-cap-warning" class="hidden text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+          ⚠️ ส่วนลดถูกจำกัดไว้ไม่ให้เกินยอดรวมค่าอาหาร
+        </p>
+      </section>
+
+      <!-- ==========================================
+           CAPTURED SLIP AREA (#slip-container)
+           ========================================== -->
+      <div id="slip-container" class="bg-white rounded-3xl shadow-md border border-slate-200/90 overflow-hidden text-slate-800">
+        
+        <!-- Slip Header (Solid background for clean html2canvas text rendering) -->
+        <div class="bg-slate-900 text-white px-5 py-5 text-center">
+          <div class="inline-block px-3 py-1 rounded-full bg-slate-800 text-amber-300 text-xs font-semibold mb-1.5 border border-slate-700 leading-normal">
+            🍣 GeeBaht Slip • ใบสรุปค่าซูชิ
+          </div>
+          <h2 id="slip-restaurant-name" class="text-xl font-extrabold text-white leading-snug">Sushiro</h2>
+          <p id="slip-datetime" class="text-xs text-slate-300 mt-0.5 leading-normal">18 ต.ค. 2026 • 22:20 น.</p>
+          
+          <!-- Summary Quick Badges -->
+          <div class="flex items-center justify-center gap-2 mt-3 flex-wrap">
+            <span id="slip-badge-members" class="text-[11px] bg-slate-800 px-2.5 py-1 rounded-lg text-slate-200 leading-normal">สมาชิก 0 คน</span>
+            <span id="slip-badge-plates" class="text-[11px] bg-slate-800 px-2.5 py-1 rounded-lg text-slate-200 leading-normal">รวม 0 จาน</span>
+            <span id="slip-badge-tax" class="text-[11px] bg-slate-800 px-2.5 py-1 rounded-lg text-amber-300 leading-normal">+ Service Charge 10% (ไม่มี VAT เพิ่ม)</span>
+          </div>
+        </div>
+
+        <div class="p-5 space-y-4">
+          
+          <!-- Table Financial Summary Box -->
+          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2 text-xs leading-normal">
+            <div class="flex justify-between items-center text-slate-600 gap-2">
+              <span>ค่าอาหารรวม (Subtotal)</span>
+              <span id="slip-table-subtotal" class="font-semibold text-slate-800 shrink-0">฿0.00</span>
+            </div>
+            <div id="slip-shared-row" class="flex justify-between items-center text-indigo-600 gap-2">
+              <span>↳ เป็นยอดกองกลาง (Shared Pool)</span>
+              <span id="slip-table-shared" class="font-semibold shrink-0">฿0.00 (คนละ ฿0.00)</span>
+            </div>
+            <div id="slip-discount-row" class="flex justify-between items-center text-rose-600 gap-2">
+              <span id="slip-discount-label">ส่วนลดท้ายบิล (Discount)</span>
+              <span id="slip-table-discount" class="font-semibold shrink-0">-฿0.00</span>
+            </div>
+            <div id="slip-sc-row" class="flex justify-between items-center text-slate-600 gap-2">
+              <span>Service Charge (10%)</span>
+              <span id="slip-table-sc" class="font-medium text-slate-800 shrink-0">฿0.00</span>
+            </div>
+            <div id="slip-vat-row" class="flex justify-between items-center text-slate-600 gap-2">
+              <span>VAT (7%)</span>
+              <span id="slip-table-vat" class="font-medium text-slate-800 shrink-0">฿0.00</span>
+            </div>
+            <div class="border-t border-dashed border-slate-300 pt-2.5 mt-1 flex items-baseline justify-between gap-2">
+              <span class="text-sm font-bold text-slate-900">ยอดสุทธิทั้งโต๊ะ (Net Total)</span>
+              <span id="slip-table-net-total" class="text-xl font-extrabold text-brand-600 shrink-0">฿0.00</span>
+            </div>
+          </div>
+
+          <!-- Transparent Individual Breakdown Section -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                สรุปยอดที่ต้องจ่ายแยกรายคน <span data-html2canvas-ignore="true" class="text-blue-600 font-semibold normal-case">(แตะชื่อเพื่อดู QR รายคน)</span>
+              </h3>
+              <span class="text-[11px] text-slate-400">ปัดเศษลงตัว 100%</span>
+            </div>
+
+            <div id="slip-members-breakdown" class="space-y-2.5">
+              <!-- Populated dynamically with each member's detailed breakdown -->
+            </div>
+          </div>
+
+          <!-- Main PromptPay QR Section inside Slip (Single QR at the bottom) -->
+          <div id="slip-promptpay-box" class="hidden border-t-2 border-dashed border-slate-200 pt-4 mt-2">
+            <div class="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <div class="inline-block bg-blue-900 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2 leading-normal">
+                🇹🇭 THAI QR PAYMENT • PROMPTPAY
+              </div>
+              <p id="slip-pp-account-name" class="text-sm font-bold text-slate-800 leading-snug"></p>
+              <p id="slip-pp-account-id" class="text-xs font-semibold text-slate-600 mt-0.5 mb-3 leading-normal"></p>
+              
+              <div id="main-qr-code-wrapper" class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center">
+                <div id="main-qr-code"></div>
+              </div>
+              <p id="slip-pp-footer-hint" class="text-[11px] text-slate-500 mt-2.5 leading-normal">
+                สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย
+              </p>
+              <p data-html2canvas-ignore="true" class="text-[11px] text-blue-600 font-medium mt-1 leading-normal">
+                (หรือแตะที่การ์ดชื่อตัวเองด้านบนเพื่อสร้าง QR ระบุยอดโอนอัตโนมัติ)
+              </p>
+            </div>
+          </div>
+
+          <!-- Slip Footer -->
+          <div class="text-center pt-2 border-t border-slate-100">
+            <p class="text-[11px] text-slate-400 font-medium leading-normal">คำนวณโดย GeeBaht (กี่บาท) • หารค่าซูชิแฟร์ๆ ไม่มีเศษสตางค์ตกหล่น</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons (Save Slip & Clear Table) -->
+      <div class="grid grid-cols-1 gap-2.5 pt-1 pb-8">
+        <button type="button" id="btn-save-slip"
+          class="w-full py-3.5 px-5 rounded-2xl font-bold text-sm text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.99] shadow-lg flex items-center justify-center gap-2 transition">
+          <span>📸 บันทึกสลิป (Save Image)</span>
+        </button>
+
+        <button type="button" id="btn-clear-table"
+          class="w-full py-3 px-5 rounded-2xl font-semibold text-sm text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 active:scale-[0.99] flex items-center justify-center gap-1.5 transition">
+          <span>🗑️ จบมื้ออาหาร (Clear Table)</span>
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================
+       MODAL: INDIVIDUAL PROMPTPAY QR CODE
+       ========================================== -->
+  <div id="modal-member-qr" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-pop border border-slate-100">
+      
+      <!-- Modal Top Header -->
+      <div class="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-5 text-center relative">
+        <button type="button" id="btn-close-qr-modal" class="absolute right-4 top-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-sm font-bold transition">
+          ✕
+        </button>
+        <span class="text-[11px] font-semibold uppercase tracking-wider bg-white/15 px-2.5 py-0.5 rounded-full text-blue-200">
+          PromptPay QR รายบุคคล
+        </span>
+        <h3 id="modal-qr-member-name" class="text-xl font-extrabold mt-2">ชื่อสมาชิก</h3>
+        <p id="modal-qr-member-detail" class="text-xs text-blue-200 mt-0.5">รายละเอียดอาหาร</p>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 flex flex-col items-center text-center space-y-4">
+        
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl py-2.5 px-5 w-full">
+          <span class="text-xs text-emerald-700 font-medium block">ยอดที่ต้องโอนสุทธิ (Exact Net Amount)</span>
+          <span id="modal-qr-net-amount" class="text-3xl font-extrabold text-emerald-700 tracking-tight">฿0.00</span>
+        </div>
+
+        <!-- QR Container, Zero-Amount State, or Missing PromptPay State -->
+        <div id="modal-qr-present-state" class="flex flex-col items-center space-y-2 w-full">
+          <div class="bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center justify-center">
+            <div id="modal-individual-qrcode"></div>
+          </div>
+          <p id="modal-qr-host-info" class="text-xs font-semibold text-slate-700"></p>
+          <p class="text-[11px] text-slate-400">สแกนด้วยแอปธนาคาร ยอดเงินจะขึ้นอัตโนมัติทันที</p>
+        </div>
+
+        <div id="modal-qr-zero-state" class="hidden bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-800 w-full space-y-1">
+          <p class="font-bold text-sm">🎉 ยอดสุทธิ ฿0.00</p>
+          <p class="text-[11px] text-emerald-700">ไม่มียอดที่ต้องโอนสำหรับมื้อนี้</p>
+        </div>
+
+        <div id="modal-qr-missing-state" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 w-full space-y-2">
+          <p class="font-bold">⚠️ ยังไม่ได้ระบุเบอร์พร้อมเพย์ของคนจ่ายเงิน</p>
+          <p class="text-[11px]">กรุณากรอกเบอร์โทรศัพท์มือถือ 10 หลัก หรือเลขบัตรประชาชน 13 หลักในส่วน "PromptPay (คนจ่ายเงิน)" ด้านบนของหน้าเช็คบิล</p>
+          <button type="button" id="btn-modal-focus-pp" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl text-xs transition inline-block mt-1">
+            ไปกรอกเบอร์พร้อมเพย์
+          </button>
+        </div>
+
+        <!-- Itemized Mini Summary in Modal -->
+        <div id="modal-qr-breakdown-box" class="w-full bg-slate-50 rounded-xl p-3 text-left text-xs space-y-1 border border-slate-200/70">
+          <!-- Populated by JS -->
+        </div>
+
+        <button type="button" id="btn-close-qr-modal-bottom" class="w-full py-3 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+          ปิดหน้าต่างนี้
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notification" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-200">
+    <div id="toast-message" class="bg-slate-900/95 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg border border-white/15 flex items-center gap-2">
+      <span>✅ บันทึกข้อมูลเรียบร้อย</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       APPLICATION LOGIC (Pure Vanilla ES6+)
+       ========================================== -->
+  <script>
+    (() => {
+      'use strict';
+
+      // --- 1. CONSTANTS & RESTAURANT PRESETS ---
+      const STORAGE_KEY = 'geebaht_state_v1';
+      const CUSTOM_PLATES_KEY = 'geebaht_custom_plates_v1';
+      // Legacy keys from the pre-rename version (migrated once on load)
+      const LEGACY_STORAGE_KEY = 'nubjarn_state_v1';
+      const LEGACY_CUSTOM_PLATES_KEY = 'nubjarn_custom_plates_v1';
+      const SHARED_POOL_ID = 'shared_pool';
+
+      const RESTAURANTS = {
+        sushiro: {
+          name: 'Sushiro',
+          plates: [30, 40, 60, 80, 100, 120],
+          isServiceCharge: true,
+          isVat: false
+        },
+        hamasushi: {
+          name: 'Hamasushi',
+          plates: [30, 40, 60, 80, 100, 120],
+          isServiceCharge: true,
+          isVat: false
+        },
+        katsumidori: {
+          name: 'Katsu Midori',
+          plates: [40, 50, 60, 70, 80, 90, 100, 120, 140, 150, 160, 180],
+          isServiceCharge: true,
+          isVat: false
+        },
+        sushiexpress: {
+          name: 'Sushi Express / Sushi Plus',
+          plates: [30, 40, 60],
+          isServiceCharge: true,
+          isVat: false
+        },
+        custom: {
+          name: 'Custom',
+          plates: [30, 40, 60, 80, 100, 120],
+          isServiceCharge: true,
+          isVat: true
+        }
+      };
+
+      // Reusable authentic sushi plate visual styles
+      const COLOR_STYLES = {
+        white: {
+          bg: 'bg-gradient-to-br from-white via-slate-50 to-slate-200 text-slate-800',
+          badge: 'bg-slate-800 text-white',
+          border: 'border-slate-300',
+          pill: 'bg-white text-slate-800 border-slate-300 shadow-2xs',
+          decBtn: 'bg-slate-800/80 hover:bg-slate-900 text-white border-slate-700',
+          incHint: 'bg-slate-300/70 text-slate-800'
+        },
+        red: {
+          bg: 'bg-gradient-to-br from-red-500 to-rose-600 text-white',
+          badge: 'bg-white text-red-600',
+          border: 'border-red-300',
+          pill: 'bg-red-100 text-red-800 border-red-200',
+          decBtn: 'bg-black/35 hover:bg-black/50 text-white border-white/25',
+          incHint: 'bg-black/15 text-white'
+        },
+        pink: {
+          bg: 'bg-gradient-to-br from-pink-400 to-rose-500 text-white',
+          badge: 'bg-white text-pink-600',
+          border: 'border-pink-300',
+          pill: 'bg-pink-100 text-pink-800 border-pink-200',
+          decBtn: 'bg-black/35 hover:bg-black/50 text-white border-white/25',
+          incHint: 'bg-black/15 text-white'
+        },
+        blue: {
+          bg: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white',
+          badge: 'bg-white text-blue-700',
+          border: 'border-blue-300',
+          pill: 'bg-blue-100 text-blue-800 border-blue-200',
+          decBtn: 'bg-black/35 hover:bg-black/50 text-white border-white/25',
+          incHint: 'bg-black/15 text-white'
+        },
+        green: {
+          bg: 'bg-gradient-to-br from-emerald-500 to-teal-700 text-white',
+          badge: 'bg-white text-emerald-800',
+          border: 'border-emerald-300',
+          pill: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          decBtn: 'bg-black/35 hover:bg-black/50 text-white border-white/25',
+          incHint: 'bg-black/15 text-white'
+        },
+        yellow: {
+          bg: 'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 text-slate-900',
+          badge: 'bg-slate-900 text-yellow-300',
+          border: 'border-yellow-400',
+          pill: 'bg-yellow-100 text-yellow-900 border-yellow-300',
+          decBtn: 'bg-slate-900/75 hover:bg-slate-900 text-white border-white/25',
+          incHint: 'bg-black/10 text-slate-900'
+        },
+        brown: {
+          bg: 'bg-gradient-to-br from-amber-700 via-amber-800 to-stone-800 text-amber-50',
+          badge: 'bg-amber-100 text-amber-950',
+          border: 'border-amber-600',
+          pill: 'bg-amber-100 text-amber-900 border-amber-300',
+          decBtn: 'bg-black/40 hover:bg-black/60 text-white border-white/25',
+          incHint: 'bg-black/20 text-amber-50'
+        },
+        silver: {
+          bg: 'bg-gradient-to-br from-slate-400 via-slate-500 to-slate-600 text-white',
+          badge: 'bg-white text-slate-800',
+          border: 'border-slate-300',
+          pill: 'bg-slate-200 text-slate-800 border-slate-300',
+          decBtn: 'bg-black/35 hover:bg-black/50 text-white border-white/25',
+          incHint: 'bg-black/15 text-white'
+        },
+        gold: {
+          bg: 'bg-gradient-to-br from-amber-300 via-amber-400 to-yellow-600 text-slate-950',
+          badge: 'bg-slate-900 text-amber-300',
+          border: 'border-amber-300',
+          pill: 'bg-amber-100 text-amber-900 border-amber-300',
+          decBtn: 'bg-slate-900/75 hover:bg-slate-900 text-white border-white/25',
+          incHint: 'bg-black/10 text-slate-950'
+        },
+        black: {
+          bg: 'bg-gradient-to-br from-neutral-800 via-slate-900 to-black text-white',
+          badge: 'bg-white text-slate-950',
+          border: 'border-neutral-600',
+          pill: 'bg-slate-800 text-white border-slate-700',
+          decBtn: 'bg-white/20 hover:bg-white/30 text-white border-white/30',
+          incHint: 'bg-white/15 text-white'
+        },
+        blackGold: {
+          bg: 'bg-gradient-to-br from-neutral-900 via-slate-950 to-black text-amber-300',
+          badge: 'bg-amber-400 text-slate-950',
+          border: 'border-amber-500/80',
+          pill: 'bg-slate-900 text-amber-300 border-amber-500',
+          decBtn: 'bg-amber-400/25 hover:bg-amber-400/40 text-amber-200 border-amber-400/40',
+          incHint: 'bg-amber-400/15 text-amber-300'
+        },
+        whiteGold: {
+          bg: 'bg-gradient-to-br from-amber-50 via-white to-amber-100 text-amber-950',
+          badge: 'bg-amber-600 text-white',
+          border: 'border-amber-400',
+          pill: 'bg-amber-50 text-amber-900 border-amber-400',
+          decBtn: 'bg-amber-900/80 hover:bg-amber-950 text-white border-amber-700',
+          incHint: 'bg-amber-200/70 text-amber-950'
+        },
+        redGold: {
+          bg: 'bg-gradient-to-br from-red-600 via-rose-700 to-amber-700 text-amber-200',
+          badge: 'bg-amber-300 text-red-950',
+          border: 'border-amber-400',
+          pill: 'bg-red-900 text-amber-200 border-amber-400',
+          decBtn: 'bg-black/40 hover:bg-black/60 text-white border-amber-300/40',
+          incHint: 'bg-black/20 text-amber-200'
+        },
+        checkeredBlue: {
+          bg: 'bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 text-sky-100',
+          badge: 'bg-sky-200 text-indigo-950',
+          border: 'border-sky-400',
+          pill: 'bg-indigo-900 text-sky-100 border-sky-400',
+          decBtn: 'bg-black/40 hover:bg-black/60 text-white border-sky-300/30',
+          incHint: 'bg-black/20 text-sky-100'
+        }
+      };
+
+      // Restaurant-specific 2026 Plate Color & Label Mapping
+      const RESTAURANT_PLATE_MAP = {
+        sushiro: {
+          30:  { name: '⚪ จานขาว (โปรฯ/ประหยัด)', style: 'white' },
+          40:  { name: '🔴 จานแดง (Red Plate)', style: 'red' },
+          60:  { name: '🥈 จานเงิน (Silver Plate)', style: 'silver' },
+          80:  { name: '🟡 จานทอง (Gold Plate)', style: 'gold' },
+          100: { name: '⚫ จานดำ (Black Plate)', style: 'black' },
+          120: { name: '✨ จานดำพรีเมียม / พิเศษ', style: 'blackGold' }
+        },
+        katsumidori: {
+          40:  { name: '🔴 จานแดง (Red)', style: 'red' },
+          50:  { name: '🔵 จานน้ำเงิน (Blue)', style: 'blue' },
+          60:  { name: '🟢 จานเขียว (Green)', style: 'green' },
+          70:  { name: '🟡 จานเหลือง (Yellow)', style: 'yellow' },
+          80:  { name: '🟤 จานน้ำตาล (Brown)', style: 'brown' },
+          90:  { name: '🌸 จานชมพู (Pink)', style: 'pink' },
+          100: { name: '🩶 จานเทา (Grey)', style: 'silver' },
+          120: { name: '🤍✨ จานขาวขอบทอง', style: 'whiteGold' },
+          140: { name: '❤️✨ จานแดงขอบทอง', style: 'redGold' },
+          150: { name: '🥇 จานทองล้วน (Gold)', style: 'gold' },
+          160: { name: '🔷 จานน้ำเงินลายตาราง', style: 'checkeredBlue' },
+          180: { name: '🖤✨ จานดำลายทอง', style: 'blackGold' }
+        },
+        sushiexpress: {
+          30:  { name: '⚪ จานขาว (White Plate)', style: 'white' },
+          40:  { name: '🌸 จานชมพู (Pink Plate)', style: 'pink' },
+          60:  { name: '⚫ จานดำ (Black Plate)', style: 'black' }
+        },
+        hamasushi: {
+          30:  { name: '⚪ จานโปรโมชั่น (฿30)', style: 'white' },
+          40:  { name: '🔴 จานมาตรฐาน (฿40)', style: 'red' },
+          60:  { name: '🥈 จานคัดพิเศษ (฿60)', style: 'silver' },
+          80:  { name: '🟡 จานพรีเมียม (฿80)', style: 'gold' },
+          100: { name: '⚫ จานพิเศษ (฿100)', style: 'black' },
+          120: { name: '✨ เมนูพรีเมียม (฿120)', style: 'blackGold' }
+        }
+      };
+
+      const DEFAULT_PRICE_MAP = {
+        30:  { name: '⚪ จานขาว (฿30)', style: 'white' },
+        40:  { name: '🔴 จานแดง (฿40)', style: 'red' },
+        50:  { name: '🔵 จานน้ำเงิน (฿50)', style: 'blue' },
+        60:  { name: '🥈 จานเงิน/เขียว (฿60)', style: 'silver' },
+        70:  { name: '🟡 จานเหลือง (฿70)', style: 'yellow' },
+        80:  { name: '🟡 จานทอง (฿80)', style: 'gold' },
+        90:  { name: '🌸 จานชมพู (฿90)', style: 'pink' },
+        100: { name: '⚫ จานดำ (฿100)', style: 'black' },
+        120: { name: '✨ จานพรีเมียม (฿120)', style: 'blackGold' }
+      };
+
+      function getPlateTheme(price, restKey = appState.restaurant) {
+        const restMap = RESTAURANT_PLATE_MAP[restKey];
+        const entry = (restMap && restMap[price]) || DEFAULT_PRICE_MAP[price];
+        if (entry && COLOR_STYLES[entry.style]) {
+          return {
+            name: entry.name,
+            ...COLOR_STYLES[entry.style]
+          };
+        }
+        return {
+          name: `🍣 จาน ฿${price}`,
+          ...COLOR_STYLES.blue
+        };
+      }
+
+      // --- 2. GLOBAL STATE & PERSISTENCE ---
+      function getDefaultState() {
+        return {
+          isActiveSession: false,
+          restaurant: 'sushiro',
+          taxSettings: {
+            isServiceCharge: true,
+            isVat: false
+          },
+          members: [],
+          platesRecord: {
+            [SHARED_POOL_ID]: {}
+          },
+          specialItems: {
+            [SHARED_POOL_ID]: []
+          },
+          discount: {
+            type: 'fixed',
+            value: 0,
+            splitMode: 'equal'
+          },
+          promptPay: {
+            id: '',
+            name: ''
+          }
+        };
+      }
+
+      let appState = getDefaultState();
+      let currentScreen = 'setup'; // 'setup' | 'counter' | 'checkout'
+      let activeTabId = SHARED_POOL_ID;
+      let customPlatesList = [30, 40, 60, 80, 100, 120];
+
+      function loadState() {
+        try {
+          // One-time migration from legacy nubjarn_* keys
+          [[LEGACY_STORAGE_KEY, STORAGE_KEY], [LEGACY_CUSTOM_PLATES_KEY, CUSTOM_PLATES_KEY]].forEach(([oldKey, newKey]) => {
+            const oldVal = localStorage.getItem(oldKey);
+            if (oldVal !== null) {
+              if (localStorage.getItem(newKey) === null) localStorage.setItem(newKey, oldVal);
+              localStorage.removeItem(oldKey);
+            }
+          });
+
+          const savedCustomPlates = localStorage.getItem(CUSTOM_PLATES_KEY);
+          if (savedCustomPlates) {
+            const parsedPlates = JSON.parse(savedCustomPlates);
+            if (Array.isArray(parsedPlates) && parsedPlates.length > 0) {
+              customPlatesList = parsedPlates;
+              RESTAURANTS.custom.plates = customPlatesList;
+            }
+          }
+
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) {
+            appState = getDefaultState();
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          const restKey = RESTAURANTS[parsed.restaurant] ? parsed.restaurant : 'sushiro';
+          const isPresetRest = restKey !== 'custom';
+          appState = {
+            isActiveSession: Boolean(parsed.isActiveSession),
+            restaurant: restKey,
+            taxSettings: {
+              isServiceCharge: isPresetRest
+                ? RESTAURANTS[restKey].isServiceCharge
+                : (parsed.taxSettings?.isServiceCharge ?? true),
+              isVat: isPresetRest
+                ? RESTAURANTS[restKey].isVat
+                : (parsed.taxSettings?.isVat ?? true)
+            },
+            members: Array.isArray(parsed.members) ? parsed.members : [],
+            platesRecord: typeof parsed.platesRecord === 'object' && parsed.platesRecord !== null
+              ? parsed.platesRecord
+              : { [SHARED_POOL_ID]: {} },
+            specialItems: typeof parsed.specialItems === 'object' && parsed.specialItems !== null
+              ? parsed.specialItems
+              : { [SHARED_POOL_ID]: [] },
+            discount: {
+              type: parsed.discount?.type === 'percent' ? 'percent' : 'fixed',
+              value: Number(parsed.discount?.value) > 0 ? Number(parsed.discount.value) : 0,
+              splitMode: parsed.discount?.splitMode === 'proportional' ? 'proportional' : 'equal'
+            },
+            promptPay: {
+              id: typeof parsed.promptPay?.id === 'string' ? parsed.promptPay.id : '',
+              name: typeof parsed.promptPay?.name === 'string' ? parsed.promptPay.name : ''
+            }
+          };
+
+          // Enforce permanent reserved entity 'shared_pool' and ensure member buckets exist
+          ensureEntityRecords();
+        } catch (err) {
+          console.error('Failed to load state from localStorage:', err);
+          appState = getDefaultState();
+        }
+      }
+
+      function ensureEntityRecords() {
+        if (!appState.platesRecord[SHARED_POOL_ID]) {
+          appState.platesRecord[SHARED_POOL_ID] = {};
+        }
+        if (!Array.isArray(appState.specialItems[SHARED_POOL_ID])) {
+          appState.specialItems[SHARED_POOL_ID] = [];
+        }
+        appState.members.forEach((m) => {
+          if (!appState.platesRecord[m.id]) {
+            appState.platesRecord[m.id] = {};
+          }
+          if (!Array.isArray(appState.specialItems[m.id])) {
+            appState.specialItems[m.id] = [];
+          }
+        });
+      }
+
+      function saveState() {
+        try {
+          ensureEntityRecords();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+          localStorage.setItem(CUSTOM_PLATES_KEY, JSON.stringify(customPlatesList));
+        } catch (err) {
+          console.error('Failed to save state to localStorage:', err);
+        }
+      }
+
+      function getActiveRestaurantPlates() {
+        if (appState.restaurant === 'custom') {
+          return customPlatesList.length > 0 ? customPlatesList : [30, 40, 60, 80, 100, 120];
+        }
+        return RESTAURANTS[appState.restaurant]?.plates || [40, 60, 80, 120];
+      }
+
+      function getActiveRestaurantName() {
+        return RESTAURANTS[appState.restaurant]?.name || 'Sushiro';
+      }
+
+      // --- 3. FINANCIAL & TAX MATH ENGINE (2-Decimal Strict, Tabular Double-Entry Reconciliation) ---
+      function round2(num) {
+        return Math.round((Number(num) + Number.EPSILON) * 100) / 100;
+      }
+
+      function formatCurrency(amount) {
+        const val = round2(amount || 0);
+        return '฿' + val.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+
+      function getEntityPlatesSubtotal(entityId) {
+        const record = appState.platesRecord[entityId] || {};
+        let sum = 0;
+        let count = 0;
+        Object.keys(record).forEach((priceStr) => {
+          const price = Number(priceStr);
+          const qty = Number(record[priceStr]) || 0;
+          if (price > 0 && qty > 0) {
+            sum += price * qty;
+            count += qty;
+          }
+        });
+        return { sum: round2(sum), count };
+      }
+
+      function getEntitySpecialSubtotal(entityId) {
+        const items = appState.specialItems[entityId] || [];
+        let sum = 0;
+        items.forEach((item) => {
+          const p = Number(item.price) || 0;
+          if (p > 0) sum += p;
+        });
+        return { sum: round2(sum), count: items.length };
+      }
+
+      function getEntityRawSubtotal(entityId) {
+        const plates = getEntityPlatesSubtotal(entityId);
+        const specials = getEntitySpecialSubtotal(entityId);
+        return {
+          platesSum: plates.sum,
+          platesCount: plates.count,
+          specialsSum: specials.sum,
+          specialsCount: specials.count,
+          totalRaw: round2(plates.sum + specials.sum)
+        };
+      }
+
+      /**
+       * Calculates complete table & individual breakdown using Tabular Double-Entry Reconciliation:
+       * - Every member's displayed rows (personalRaw + sharedShare - discount + scAmount + vatAmount)
+       *   sum vertically to that member's exact netAmount.
+       * - Across all members, Sum(member.netAmount) == tableNetTotal to the exact satang.
+       * - Members with ฿0.00 food are guaranteed ฿0.00 discount, ฿0.00 tax, and ฿0.00 netAmount.
+       */
+      function calculateBillSummary() {
+        const memberCount = appState.members.length;
+        const sharedStats = getEntityRawSubtotal(SHARED_POOL_ID);
+        const sharedTotalRaw = sharedStats.totalRaw;
+
+        let totalPlatesCount = sharedStats.platesCount;
+        let totalSpecialsCount = sharedStats.specialsCount;
+        let personalTotalRaw = 0;
+
+        const memberRawMap = {};
+        appState.members.forEach((m) => {
+          const st = getEntityRawSubtotal(m.id);
+          memberRawMap[m.id] = st;
+          personalTotalRaw = round2(personalTotalRaw + st.totalRaw);
+          totalPlatesCount += st.platesCount;
+          totalSpecialsCount += st.specialsCount;
+        });
+
+        const tableSubtotalBeforeTax = round2(sharedTotalRaw + personalTotalRaw);
+
+        // 1. Shared Pool Allocation across members (with 0.01 remainder distribution)
+        const perPersonSharedExact = memberCount > 0 ? (sharedTotalRaw / memberCount) : 0;
+        const perPersonSharedDisplay = round2(perPersonSharedExact);
+        const memberSharedArr = new Array(memberCount).fill(0);
+
+        if (memberCount > 0 && sharedTotalRaw > 0) {
+          let sumShared = 0;
+          for (let i = 0; i < memberCount; i++) {
+            memberSharedArr[i] = perPersonSharedDisplay;
+            sumShared = round2(sumShared + perPersonSharedDisplay);
+          }
+          let sharedDiff = round2(sharedTotalRaw - sumShared);
+          for (let i = memberCount - 1; i >= 0 && Math.abs(sharedDiff) >= 0.01; i--) {
+            const step = sharedDiff > 0 ? 0.01 : -0.01;
+            if (memberSharedArr[i] + step >= 0) {
+              memberSharedArr[i] = round2(memberSharedArr[i] + step);
+              sharedDiff = round2(sharedDiff - step);
+            }
+          }
+        }
+
+        // Pre-tax food subtotal per member (personalRaw + allocated sharedShare)
+        const memberPreTaxArr = appState.members.map((m, idx) => {
+          const st = memberRawMap[m.id];
+          return round2(st.totalRaw + memberSharedArr[idx]);
+        });
+
+        // 2. Global Discount calculation with cap (Discount cannot exceed total bill subtotal)
+        const isPercentDiscount = appState.discount.type === 'percent';
+        const effectiveSplitMode = isPercentDiscount
+          ? 'proportional'
+          : (appState.discount.splitMode === 'proportional' ? 'proportional' : 'equal');
+
+        let requestedDiscountTHB = 0;
+        const discVal = Math.max(0, Number(appState.discount.value) || 0);
+        const cappedPct = isPercentDiscount ? Math.min(100, discVal) : 0;
+
+        if (isPercentDiscount) {
+          requestedDiscountTHB = round2(tableSubtotalBeforeTax * (cappedPct / 100));
+        } else {
+          requestedDiscountTHB = round2(discVal);
+        }
+
+        const isDiscountCapped = requestedDiscountTHB > tableSubtotalBeforeTax && tableSubtotalBeforeTax > 0;
+        const globalDiscountTHB = round2(Math.min(tableSubtotalBeforeTax, requestedDiscountTHB));
+        const tableDiscountedSubtotal = round2(Math.max(0, tableSubtotalBeforeTax - globalDiscountTHB));
+
+        // Descriptive Discount Labels for all 4 UI places
+        let tableDiscountLabel = 'ส่วนลดท้ายบิล (Discount)';
+        let memberDiscountLabel = 'ส่วนลดตามสัดส่วน';
+        if (globalDiscountTHB > 0) {
+          if (isPercentDiscount) {
+            tableDiscountLabel = `ส่วนลดท้ายบิล (${cappedPct}%)`;
+            memberDiscountLabel = `ส่วนลด (${cappedPct}% ตามสัดส่วน)`;
+          } else if (effectiveSplitMode === 'equal') {
+            tableDiscountLabel = 'ส่วนลดท้ายบิล (หารเท่ากัน)';
+            memberDiscountLabel = 'ส่วนลดท้ายบิล (หารเท่ากัน)';
+          } else {
+            tableDiscountLabel = 'ส่วนลดท้ายบิล (ตามสัดส่วน)';
+            memberDiscountLabel = 'ส่วนลด (ตามสัดส่วนที่กิน)';
+          }
+        }
+
+        // 3. Table Tax Calculation
+        const isSC = Boolean(appState.taxSettings.isServiceCharge);
+        const isVAT = Boolean(appState.taxSettings.isVat);
+
+        const tableSCAmount = isSC ? round2(tableDiscountedSubtotal * 0.10) : 0;
+        const tableBaseWithSC = round2(tableDiscountedSubtotal + tableSCAmount);
+        let exactTableNet = tableDiscountedSubtotal;
+        if (isSC) exactTableNet *= 1.10;
+        if (isVAT) exactTableNet *= 1.07;
+        const tableNetTotal = round2(exactTableNet);
+        const tableVATAmount = isVAT ? round2(tableNetTotal - tableBaseWithSC) : 0;
+
+        // 4. Allocate Global Discount across members (Equal with Cap & Spillover vs. Proportional)
+        const memberDiscountArr = new Array(memberCount).fill(0);
+
+        if (memberCount > 0 && tableSubtotalBeforeTax > 0 && globalDiscountTHB > 0) {
+          if (effectiveSplitMode === 'equal') {
+            let remainingDisc = globalDiscountTHB;
+            const caps = memberPreTaxArr.slice();
+            const allocated = new Array(memberCount).fill(0);
+
+            for (let iter = 0; iter < memberCount + 2 && remainingDisc > 0.0001; iter++) {
+              const activeIndices = [];
+              for (let i = 0; i < memberCount; i++) {
+                if (caps[i] - allocated[i] > 0.0001) {
+                  activeIndices.push(i);
+                }
+              }
+              if (activeIndices.length === 0) break;
+
+              const equalShare = remainingDisc / activeIndices.length;
+              let anyCappedThisRound = false;
+
+              for (const idx of activeIndices) {
+                const room = caps[idx] - allocated[idx];
+                if (room <= equalShare + 0.0001) {
+                  allocated[idx] = caps[idx];
+                  remainingDisc = Math.max(0, remainingDisc - room);
+                  anyCappedThisRound = true;
+                }
+              }
+
+              if (!anyCappedThisRound) {
+                for (const idx of activeIndices) {
+                  allocated[idx] += equalShare;
+                }
+                remainingDisc = 0;
+                break;
+              }
+            }
+
+            for (let i = 0; i < memberCount; i++) {
+              memberDiscountArr[i] = round2(Math.min(memberPreTaxArr[i], allocated[i]));
+            }
+          } else {
+            // Proportional Split based on each member's pre-tax food total
+            for (let i = 0; i < memberCount; i++) {
+              if (memberPreTaxArr[i] > 0) {
+                const exactD = globalDiscountTHB * (memberPreTaxArr[i] / tableSubtotalBeforeTax);
+                memberDiscountArr[i] = round2(Math.min(memberPreTaxArr[i], exactD));
+              }
+            }
+          }
+
+          // Reconcile any satang difference in discount only among members with preTax > 0 and room within [0, preTax]
+          let sumRoundedDisc = memberDiscountArr.reduce((acc, v) => round2(acc + v), 0);
+          let discDiff = round2(globalDiscountTHB - sumRoundedDisc);
+          for (let pass = 0; pass < 4 && Math.abs(discDiff) >= 0.01; pass++) {
+            for (let i = memberCount - 1; i >= 0 && Math.abs(discDiff) >= 0.01; i--) {
+              if (memberPreTaxArr[i] <= 0) continue;
+              const step = discDiff > 0 ? 0.01 : -0.01;
+              const candidate = round2(memberDiscountArr[i] + step);
+              if (candidate >= 0 && candidate <= memberPreTaxArr[i]) {
+                memberDiscountArr[i] = candidate;
+                discDiff = round2(discDiff - step);
+              }
+            }
+          }
+        }
+
+        // Discounted food subtotal per member
+        const memberDiscountedSubtotalArr = memberPreTaxArr.map((preTax, idx) =>
+          round2(Math.max(0, preTax - memberDiscountArr[idx]))
+        );
+
+        // 5. Per-member Service Charge (10%) with active-member reconciliation
+        const memberSCArr = new Array(memberCount).fill(0);
+        if (isSC && tableSCAmount > 0 && memberCount > 0) {
+          let sumSC = 0;
+          for (let i = 0; i < memberCount; i++) {
+            if (memberDiscountedSubtotalArr[i] > 0) {
+              memberSCArr[i] = round2(memberDiscountedSubtotalArr[i] * 0.10);
+              sumSC = round2(sumSC + memberSCArr[i]);
+            }
+          }
+          let scDiff = round2(tableSCAmount - sumSC);
+          for (let pass = 0; pass < 4 && Math.abs(scDiff) >= 0.01; pass++) {
+            for (let i = memberCount - 1; i >= 0 && Math.abs(scDiff) >= 0.01; i--) {
+              if (memberDiscountedSubtotalArr[i] <= 0) continue;
+              const step = scDiff > 0 ? 0.01 : -0.01;
+              if (memberSCArr[i] + step >= 0) {
+                memberSCArr[i] = round2(memberSCArr[i] + step);
+                scDiff = round2(scDiff - step);
+              }
+            }
+          }
+        }
+
+        // 6. Per-member VAT (7%) with active-member reconciliation
+        const memberVATArr = new Array(memberCount).fill(0);
+        if (isVAT && tableVATAmount > 0 && memberCount > 0) {
+          let sumVAT = 0;
+          for (let i = 0; i < memberCount; i++) {
+            const baseWithSC = round2(memberDiscountedSubtotalArr[i] + memberSCArr[i]);
+            if (baseWithSC > 0) {
+              memberVATArr[i] = round2(baseWithSC * 0.07);
+              sumVAT = round2(sumVAT + memberVATArr[i]);
+            }
+          }
+          let vatDiff = round2(tableVATAmount - sumVAT);
+          for (let pass = 0; pass < 4 && Math.abs(vatDiff) >= 0.01; pass++) {
+            for (let i = memberCount - 1; i >= 0 && Math.abs(vatDiff) >= 0.01; i--) {
+              if (memberDiscountedSubtotalArr[i] <= 0) continue;
+              const step = vatDiff > 0 ? 0.01 : -0.01;
+              if (memberVATArr[i] + step >= 0) {
+                memberVATArr[i] = round2(memberVATArr[i] + step);
+                vatDiff = round2(vatDiff - step);
+              }
+            }
+          }
+        }
+
+        // 7. Assemble Individual Member Breakdown (Vertical Sum == Member Net, Horizontal Sum == Table Net)
+        const memberBreakdowns = appState.members.map((m, idx) => {
+          const st = memberRawMap[m.id];
+          const memberShared = memberSharedArr[idx];
+          const memberPreTax = memberPreTaxArr[idx];
+          const memberDiscount = memberDiscountArr[idx];
+          const memberDiscountedSubtotal = memberDiscountedSubtotalArr[idx];
+          const memberSC = memberSCArr[idx];
+          const memberVAT = memberVATArr[idx];
+          const memberNet = round2(memberDiscountedSubtotal + memberSC + memberVAT);
+
+          return {
+            id: m.id,
+            name: m.name,
+            personalRaw: st.totalRaw,
+            platesCount: st.platesCount,
+            specialsCount: st.specialsCount,
+            sharedShare: memberShared,
+            preTaxSubtotal: memberPreTax,
+            discount: memberDiscount,
+            discountLabel: memberDiscountLabel,
+            discountedSubtotal: memberDiscountedSubtotal,
+            scAmount: memberSC,
+            vatAmount: memberVAT,
+            netAmount: memberNet
+          };
+        });
+
+        return {
+          totalPlatesCount,
+          totalSpecialsCount,
+          sharedTotalRaw,
+          perPersonShared: perPersonSharedDisplay,
+          tableSubtotalBeforeTax,
+          globalDiscountTHB,
+          isDiscountCapped,
+          effectiveSplitMode,
+          tableDiscountLabel,
+          memberDiscountLabel,
+          tableDiscountedSubtotal,
+          tableSCAmount,
+          tableVATAmount,
+          tableNetTotal,
+          memberBreakdowns
+        };
+      }
+
+      // --- 4. EMVCO PROMPTPAY QR GENERATOR (CRC16-CCITT 0x1021, Init 0xFFFF) ---
+      function formatTLV(tag, value) {
+        const strVal = String(value);
+        const len = String(strVal.length).padStart(2, '0');
+        return `${tag}${len}${strVal}`;
+      }
+
+      function computeCRC16CCITT(payloadStr) {
+        let crc = 0xFFFF;
+        for (let i = 0; i < payloadStr.length; i++) {
+          crc ^= (payloadStr.charCodeAt(i) & 0xFF) << 8;
+          for (let j = 0; j < 8; j++) {
+            if ((crc & 0x8000) !== 0) {
+              crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+            } else {
+              crc = (crc << 1) & 0xFFFF;
+            }
+          }
+        }
+        return crc.toString(16).toUpperCase().padStart(4, '0');
+      }
+
+      /**
+       * Built-in pure JS function generatePromptPayPayload(ppId, amount)
+       * Supports 10-digit Thai mobile numbers (must start with 06, 08, or 09 -> 0066xxxxxxxxx)
+       * and 13-digit Thai National ID / Tax ID.
+       * Rejects 10-digit bank account numbers (e.g. starting with 01-05, 07, 1-9) so they never generate a wrong mobile QR.
+       */
+      function generatePromptPayPayload(ppId, amount) {
+        const sanitized = String(ppId || '').replace(/[^0-9]/g, '');
+        const isValidMobile = /^0[689]\d{8}$/.test(sanitized);
+        const isValidNatId = /^\d{13}$/.test(sanitized);
+
+        if (!isValidMobile && !isValidNatId) {
+          return null;
+        }
+
+        // Tag 00: Payload Format Indicator = "01"
+        const tag00 = formatTLV('00', '01');
+        // Tag 01: Point of Initiation Method ("11" = Static/Generic, "12" = Dynamic/Amount-specific)
+        const hasAmount = amount !== undefined && amount !== null && Number(amount) > 0;
+        const tag01 = formatTLV('01', hasAmount ? '12' : '11');
+
+        // Tag 29: Merchant Account Information (PromptPay AID = A000000677010111)
+        const subTag00 = formatTLV('00', 'A000000677010111');
+        let subTagTarget = '';
+        if (isValidMobile) {
+          // Sub-tag 01: Mobile number formatted as 0066 + 9 digits (strip leading 0)
+          const formattedPhone = '0066' + sanitized.substring(1);
+          subTagTarget = formatTLV('01', formattedPhone);
+        } else {
+          // Sub-tag 02: 13-digit National ID / Tax ID
+          subTagTarget = formatTLV('02', sanitized);
+        }
+        const tag29 = formatTLV('29', subTag00 + subTagTarget);
+
+        // Tag 58: Country Code = "TH"
+        const tag58 = formatTLV('58', 'TH');
+        // Tag 53: Transaction Currency = "764" (THB)
+        const tag53 = formatTLV('53', '764');
+
+        // Tag 54: Transaction Amount (if > 0, formatted to 2 decimal places)
+        let tag54 = '';
+        if (hasAmount) {
+          const formattedAmt = round2(amount).toFixed(2);
+          tag54 = formatTLV('54', formattedAmt);
+        }
+
+        // Tag 63: CRC ("6304" + 4 hex chars)
+        const rawPayloadWithoutCRC = `${tag00}${tag01}${tag29}${tag58}${tag53}${tag54}6304`;
+        const crcHex = computeCRC16CCITT(rawPayloadWithoutCRC);
+        return rawPayloadWithoutCRC + crcHex;
+      }
+
+      // Expose globally for QA testing / console verification
+      window.generatePromptPayPayload = generatePromptPayPayload;
+
+      // --- 5. DOM REFERENCES & DEFENSIVE HELPERS ---
+      const $ = (id) => document.getElementById(id);
+
+      function showToast(msg) {
+        const toast = $('toast-notification');
+        const toastMsg = $('toast-message');
+        if (!toast || !toastMsg) return;
+        toastMsg.textContent = msg;
+        toast.classList.remove('opacity-0');
+        toast.classList.add('opacity-100');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => {
+          toast.classList.remove('opacity-100');
+          toast.classList.add('opacity-0');
+        }, 2200);
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      // --- 6. SCREEN NAVIGATION ---
+      function switchScreen(targetScreen) {
+        const screenSetup = $('screen-setup');
+        const screenCounter = $('screen-counter');
+        const screenCheckout = $('screen-checkout');
+        const mainHeader = $('main-header');
+
+        if (!screenSetup || !screenCounter || !screenCheckout) return;
+
+        screenSetup.classList.add('hidden');
+        screenCounter.classList.add('hidden');
+        screenCheckout.classList.add('hidden');
+
+        currentScreen = targetScreen;
+
+        if (targetScreen === 'setup') {
+          if (mainHeader) mainHeader.classList.remove('hidden');
+          screenSetup.classList.remove('hidden');
+          renderSetupScreen();
+        } else if (targetScreen === 'counter') {
+          if (mainHeader) mainHeader.classList.add('hidden');
+          screenCounter.classList.remove('hidden');
+          renderCounterScreen();
+        } else if (targetScreen === 'checkout') {
+          if (mainHeader) mainHeader.classList.remove('hidden');
+          screenCheckout.classList.remove('hidden');
+          isPromptPayCardExpanded = null;
+          renderCheckoutScreen();
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // --- 7. SCREEN 1: SETUP LOGIC & RENDERING ---
+      function hasExistingSessionActivity() {
+        if (!appState.isActiveSession) return false;
+        const summary = calculateBillSummary();
+        return summary.totalPlatesCount > 0 || summary.tableSubtotalBeforeTax > 0 || appState.members.length > 0;
+      }
+
+      function hasAnyTableData() {
+        const summary = calculateBillSummary();
+        return (
+          appState.members.length > 0 ||
+          summary.totalPlatesCount > 0 ||
+          summary.tableSubtotalBeforeTax > 0 ||
+          Number(appState.discount?.value) > 0
+        );
+      }
+
+      function applyRestaurantSelection(restKey) {
+        if (!RESTAURANTS[restKey]) return;
+        if (restKey === appState.restaurant) return;
+
+        const hadData = hasAnyTableData();
+        if (hadData) {
+          const targetRestName = RESTAURANTS[restKey].name || restKey;
+          const confirmed = confirm(
+            `ยืนยันการเปลี่ยนเป็นร้าน "${targetRestName}"?\n\nระบบจะล้างข้อมูลรายชื่อและจานที่เลือกไว้ทั้งหมดเพื่อไม่ให้ราคาจานปนกัน (แต่ยังเก็บข้อมูล PromptPay ไว้ให้เหมือนเดิม)`
+          );
+          if (!confirmed) {
+            const selectEl = $('select-restaurant');
+            if (selectEl) selectEl.value = appState.restaurant;
+            return;
+          }
+          resetSessionKeepPromptPay();
+        }
+
+        appState.restaurant = restKey;
+
+        if (restKey === 'custom') {
+          const scCheckbox = $('toggle-custom-sc');
+          const vatCheckbox = $('toggle-custom-vat');
+          appState.taxSettings.isServiceCharge = scCheckbox ? scCheckbox.checked : true;
+          appState.taxSettings.isVat = vatCheckbox ? vatCheckbox.checked : true;
+          parseCustomPlatesInput();
+        } else {
+          appState.taxSettings.isServiceCharge = RESTAURANTS[restKey].isServiceCharge;
+          appState.taxSettings.isVat = RESTAURANTS[restKey].isVat;
+        }
+
+        saveState();
+        renderSetupScreen();
+
+        if (hadData) {
+          showToast(`🔄 เปลี่ยนร้านและล้างข้อมูลโต๊ะเก่าเรียบร้อย (เก็บ PromptPay ไว้ให้แล้ว)`);
+        }
+      }
+
+      function parseCustomPlatesInput() {
+        const input = $('input-custom-plates');
+        if (!input) return;
+        const rawParts = input.value.split(',');
+        const validPrices = [];
+        rawParts.forEach((p) => {
+          const val = parseInt(p.trim(), 10);
+          if (!isNaN(val) && val > 0 && val <= 5000 && !validPrices.includes(val)) {
+            validPrices.push(val);
+          }
+        });
+        validPrices.sort((a, b) => a - b);
+        if (validPrices.length > 0) {
+          customPlatesList = validPrices;
+          RESTAURANTS.custom.plates = validPrices;
+          saveState();
+        }
+      }
+
+      function renderSetupRestaurantUI() {
+        const selectEl = $('select-restaurant');
+        const taxPill = $('restaurant-tax-pill');
+        const customPanel = $('custom-restaurant-panel');
+        const previewEl = $('restaurant-plates-preview');
+
+        if (selectEl) selectEl.value = appState.restaurant;
+
+        const isSC = appState.taxSettings.isServiceCharge;
+        const isVAT = appState.taxSettings.isVat;
+
+        if (taxPill) {
+          if (isSC && isVAT) {
+            taxPill.textContent = 'Service Charge 10% + VAT 7%';
+            taxPill.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
+          } else if (isSC && !isVAT) {
+            taxPill.textContent = '+ Service Charge 10% (ไม่มี VAT เพิ่ม)';
+            taxPill.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800';
+          } else if (!isSC && isVAT) {
+            taxPill.textContent = 'VAT 7% (ไม่มี Service Charge)';
+            taxPill.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800';
+          } else {
+            taxPill.textContent = 'Net Price (ไม่บวกเพิ่ม)';
+            taxPill.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+          }
+        }
+
+        if (customPanel) {
+          if (appState.restaurant === 'custom') {
+            customPanel.classList.remove('hidden');
+            const scToggle = $('toggle-custom-sc');
+            const vatToggle = $('toggle-custom-vat');
+            if (scToggle) scToggle.checked = isSC;
+            if (vatToggle) vatToggle.checked = isVAT;
+          } else {
+            customPanel.classList.add('hidden');
+          }
+        }
+
+        if (previewEl) {
+          const plates = getActiveRestaurantPlates();
+          previewEl.innerHTML = `<span class="text-xs text-slate-400 mr-1">ราคาจาน:</span>` +
+            plates.map((p) => {
+              const theme = getPlateTheme(p);
+              return `<span class="text-xs font-bold px-2.5 py-0.5 rounded-full border ${theme.pill}" title="${escapeHtml(theme.name)}">฿${p}</span>`;
+            }).join('');
+        }
+      }
+
+      function renderSetupMembersUI() {
+        const listContainer = $('members-list-container');
+        const countBadge = $('member-count-badge');
+        const startBtn = $('btn-start-session');
+        const errorMsg = $('setup-error-msg');
+        const inputMember = $('input-member-name');
+
+        const count = appState.members.length;
+        const hasPendingInput = Boolean(inputMember && String(inputMember.value || '').trim().length > 0);
+
+        if (countBadge) {
+          countBadge.textContent = `${count} คน`;
+        }
+
+        if (startBtn) {
+          startBtn.disabled = count < 1 && !hasPendingInput;
+        }
+
+        if (errorMsg && (count >= 1 || hasPendingInput)) {
+          errorMsg.classList.add('hidden');
+        }
+
+        if (!listContainer) return;
+
+        if (count === 0) {
+          listContainer.innerHTML = `
+            <div class="text-center py-4 space-y-1">
+              <div class="text-2xl">🍣</div>
+              <p class="text-xs font-semibold text-slate-500">ยังไม่มีรายชื่อสมาชิกในโต๊ะ</p>
+              <p class="text-[11px] text-slate-400">พิมพ์ชื่อเพื่อนด้านบนแล้วกด Enter หรือปุ่ม "+ เพิ่ม" ได้เลย</p>
+            </div>
+          `;
+          return;
+        }
+
+        listContainer.innerHTML = `
+          <div class="flex flex-wrap gap-2">
+            ${appState.members.map((m, index) => `
+              <div class="inline-flex items-center gap-2 bg-white border-2 border-slate-200 hover:border-brand-300 rounded-xl pl-3 pr-2 py-1.5 shadow-sm transition animate-pop">
+                <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 text-[11px] font-bold flex items-center justify-center">${index + 1}</span>
+                <span class="text-sm font-semibold text-slate-800">${escapeHtml(m.name)}</span>
+                <button type="button" data-remove-member="${escapeHtml(m.id)}"
+                  class="w-6 h-6 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center text-xs font-bold transition"
+                  title="ลบสมาชิก">
+                  ✕
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      function renderActiveSessionBanner() {
+        const banner = $('active-session-banner');
+        if (!banner) return;
+
+        if (!hasExistingSessionActivity()) {
+          banner.classList.add('hidden');
+          return;
+        }
+
+        const summary = calculateBillSummary();
+        const restName = getActiveRestaurantName();
+        const titleEl = $('resume-restaurant-title');
+        const detailsEl = $('resume-details-text');
+        const badgeEl = $('resume-summary-badge');
+
+        if (titleEl) titleEl.textContent = `ร้าน ${restName}`;
+        if (detailsEl) {
+          const specialsPart = summary.totalSpecialsCount > 0 ? ` + ${summary.totalSpecialsCount} เมนูพิเศษ` : '';
+          detailsEl.textContent = `สมาชิก ${appState.members.length} คน • นับไปแล้ว ${summary.totalPlatesCount} จาน${specialsPart}`;
+        }
+        if (badgeEl) {
+          badgeEl.textContent = formatCurrency(summary.tableSubtotalBeforeTax);
+        }
+
+        banner.classList.remove('hidden');
+      }
+
+      function renderSetupScreen() {
+        renderActiveSessionBanner();
+        renderSetupRestaurantUI();
+        renderSetupMembersUI();
+      }
+
+      function addMemberByName(rawName, isLiteralSingle = false) {
+        const rawStr = String(rawName || '').trim();
+        const input = $('input-member-name');
+        if (!rawStr) {
+          if (input) input.focus();
+          return;
+        }
+
+        // Support splitting multiple names by space (" ") or comma (",") for fast mobile typing
+        const namesToAdd = isLiteralSingle
+          ? [rawStr]
+          : rawStr.split(/[\s,]+/).map((n) => n.trim()).filter(Boolean);
+
+        if (namesToAdd.length === 0) {
+          if (input) input.focus();
+          return;
+        }
+
+        let addedCount = 0;
+        const skippedDuplicates = [];
+
+        namesToAdd.forEach((name, idx) => {
+          const isDuplicate = appState.members.some((m) => m.name.toLowerCase() === name.toLowerCase());
+          if (isDuplicate) {
+            skippedDuplicates.push(name);
+            return;
+          }
+
+          const newId = `m_${Date.now()}_${idx}_${Math.floor(Math.random() * 1000)}`;
+          appState.members.push({ id: newId, name });
+          appState.platesRecord[newId] = {};
+          appState.specialItems[newId] = [];
+          addedCount++;
+        });
+
+        if (input) {
+          input.value = '';
+        }
+
+        if (addedCount > 0) {
+          saveState();
+          renderSetupMembersUI();
+          renderActiveSessionBanner();
+          if (addedCount > 1) {
+            showToast(`✅ เพิ่มสมาชิก ${addedCount} คนเรียบร้อย`);
+          }
+        } else {
+          renderSetupMembersUI();
+        }
+
+        if (skippedDuplicates.length > 0) {
+          showToast(`⚠️ มีชื่อ "${skippedDuplicates.join(', ')}" อยู่ในโต๊ะแล้ว`);
+        }
+
+        if (input) {
+          input.focus();
+        }
+      }
+
+      function removeMemberById(memberId) {
+        appState.members = appState.members.filter((m) => m.id !== memberId);
+        delete appState.platesRecord[memberId];
+        delete appState.specialItems[memberId];
+        if (activeTabId === memberId) {
+          activeTabId = SHARED_POOL_ID;
+        }
+        saveState();
+        renderSetupMembersUI();
+        renderActiveSessionBanner();
+      }
+
+      function resetSessionKeepPromptPay() {
+        const savedPP = { ...appState.promptPay };
+        const currentRest = appState.restaurant;
+        const currentTax = { ...appState.taxSettings };
+
+        appState = getDefaultState();
+        appState.restaurant = currentRest;
+        appState.taxSettings = currentTax;
+        appState.promptPay = savedPP;
+        activeTabId = SHARED_POOL_ID;
+
+        saveState();
+      }
+
+      // --- 8. SCREEN 2: COUNTER PAD LOGIC & RENDERING ---
+      function renderCounterTopBar(summary) {
+        const restBadge = $('counter-restaurant-badge');
+        const platesBadge = $('counter-total-plates-badge');
+        const liveNetTotal = $('counter-live-net-total');
+
+        if (restBadge) restBadge.textContent = getActiveRestaurantName();
+        if (platesBadge) {
+          const specialsPart = summary.totalSpecialsCount > 0 ? ` + ${summary.totalSpecialsCount} เมนูพิเศษ` : '';
+          platesBadge.textContent = `รวม ${summary.totalPlatesCount} จาน${specialsPart}`;
+        }
+        // Show pure food total on Counter screen (Discount, Service Charge & VAT applied on Final Checkout screen)
+        if (liveNetTotal) liveNetTotal.textContent = formatCurrency(summary.tableSubtotalBeforeTax);
+      }
+
+      function renderMemberTabsCarousel() {
+        const carousel = $('member-tabs-carousel');
+        if (!carousel) return;
+
+        // Validate activeTabId exists
+        const memberExists = appState.members.some((m) => m.id === activeTabId);
+        if (activeTabId !== SHARED_POOL_ID && !memberExists) {
+          activeTabId = SHARED_POOL_ID;
+        }
+
+        const tabs = [
+          { id: SHARED_POOL_ID, name: '🥢 กองกลาง', isShared: true },
+          ...appState.members.map((m) => ({ id: m.id, name: m.name, isShared: false }))
+        ];
+
+        carousel.innerHTML = tabs.map((tab) => {
+          const isActive = tab.id === activeTabId;
+          const st = getEntityRawSubtotal(tab.id);
+          const itemCount = st.platesCount + st.specialsCount;
+
+          const activeClasses = isActive
+            ? (tab.isShared
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20 font-bold'
+              : 'bg-brand-600 text-white border-brand-600 shadow-md shadow-brand-500/20 font-bold')
+            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 font-medium';
+
+          const badgeClasses = isActive
+            ? 'bg-white/25 text-white'
+            : (itemCount > 0 ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500');
+
+          return `
+            <button type="button" data-tab-id="${escapeHtml(tab.id)}"
+              class="member-tab-btn shrink-0 px-3.5 py-2 rounded-xl border text-xs flex items-center gap-2 transition active:scale-95 ${activeClasses}">
+              <span class="truncate max-w-[110px]">${escapeHtml(tab.name)}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold ${badgeClasses}">${itemCount}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      function renderActiveTabStatusBar() {
+        const nameDisplay = $('active-tab-name-display');
+        const platesSummary = $('active-tab-plates-summary');
+        const subtotalSummary = $('active-tab-subtotal-summary');
+        const dotEl = $('active-tab-indicator-dot');
+        const specialTargetBadge = $('special-target-badge');
+        const clearPlatesBtn = $('btn-clear-active-plates');
+
+        const isShared = activeTabId === SHARED_POOL_ID;
+        const memberObj = appState.members.find((m) => m.id === activeTabId);
+        const displayName = isShared ? '🥢 กองกลาง (หารทุกคน)' : (memberObj ? memberObj.name : '');
+        const shortTargetName = isShared ? 'กองกลาง' : (memberObj ? memberObj.name : 'คนนี้');
+
+        const st = getEntityRawSubtotal(activeTabId);
+
+        if (nameDisplay) nameDisplay.textContent = displayName;
+        if (dotEl) {
+          dotEl.className = isShared
+            ? 'w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0'
+            : 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+        }
+        if (platesSummary) {
+          platesSummary.textContent = `${st.platesCount} จาน${st.specialsCount > 0 ? ` + ${st.specialsCount} พิเศษ` : ''}`;
+        }
+        if (subtotalSummary) {
+          subtotalSummary.innerHTML = `${formatCurrency(st.totalRaw)} <span class="text-[10px] font-normal text-slate-400">(รวมค่าอาหาร)</span>`;
+        }
+        if (specialTargetBadge) {
+          specialTargetBadge.textContent = `ของ: ${shortTargetName}`;
+        }
+        if (clearPlatesBtn) {
+          clearPlatesBtn.innerHTML = `<span class="truncate max-w-[140px]">🗑️ ล้างจานของ ${escapeHtml(shortTargetName)}</span>`;
+          if (st.platesCount > 0) {
+            clearPlatesBtn.disabled = false;
+            clearPlatesBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-xl border transition shrink-0 flex items-center gap-1 bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-600 border-rose-200 cursor-pointer shadow-2xs';
+          } else {
+            clearPlatesBtn.disabled = true;
+            clearPlatesBtn.className = 'text-xs font-semibold px-3 py-1.5 rounded-xl border transition shrink-0 flex items-center gap-1 opacity-40 pointer-events-none bg-slate-100 text-slate-400 border-slate-200';
+          }
+        }
+      }
+
+      function renderPlatesGrid() {
+        const grid = $('plates-grid');
+        if (!grid) return;
+
+        const plates = getActiveRestaurantPlates();
+        const activeRecord = appState.platesRecord[activeTabId] || {};
+
+        grid.innerHTML = plates.map((price) => {
+          const count = Number(activeRecord[price]) || 0;
+          const theme = getPlateTheme(price);
+          const subtotalForPlate = price * count;
+          const decBtnClass = theme.decBtn || 'bg-black/35 hover:bg-black/50 text-white border-white/25';
+          const incHintClass = theme.incHint || 'bg-black/15 text-white';
+
+          return `
+            <div data-plate-card="${price}" role="button" tabindex="0"
+              class="plate-ring ${theme.bg} rounded-3xl p-4 shadow-md border-2 ${theme.border} flex flex-col justify-between min-h-[132px] cursor-pointer select-none relative">
+              
+              <!-- Top row: Plate label & Count Badge -->
+              <div class="flex items-start justify-between gap-1 z-10">
+                <span class="text-[11px] font-semibold opacity-95 leading-tight">${escapeHtml(theme.name)}</span>
+                <span id="plate-badge-${price}" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold shadow-sm ${theme.badge} ${count > 0 ? '' : 'opacity-60'}">
+                  x${count}
+                </span>
+              </div>
+
+              <!-- Center: Large Price Display -->
+              <div class="my-2 text-center z-10">
+                <span class="text-3xl font-extrabold tracking-tight">฿${price}</span>
+                <span class="block text-[11px] opacity-85 font-medium mt-0.5">
+                  ${count > 0 ? `รวม ฿${subtotalForPlate.toLocaleString()}` : 'แตะเพื่อ +1 จาน'}
+                </span>
+              </div>
+
+              <!-- Bottom row: Decrement (-) Sub-button (Visible only if count > 0 per spec) -->
+              <div class="flex items-center justify-between min-h-[28px] z-10">
+                ${count > 0 ? `
+                  <button type="button" data-plate-dec="${price}"
+                    class="${decBtnClass} active:scale-90 font-bold px-3 py-1 rounded-xl text-xs backdrop-blur-sm border transition flex items-center gap-1 shadow-sm">
+                    <span>− ลด 1</span>
+                  </button>
+                ` : `<span></span>`}
+                <span class="text-xs font-bold opacity-85 ${incHintClass} px-2 py-0.5 rounded-lg">+ เพิ่ม</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderSpecialItemsList() {
+        const container = $('special-items-list');
+        if (!container) return;
+
+        const items = appState.specialItems[activeTabId] || [];
+        if (items.length === 0) {
+          container.innerHTML = `
+            <p class="text-xs text-slate-400 text-center py-2">ยังไม่มีรายการเมนูพิเศษสำหรับแท็บนี้</p>
+          `;
+          return;
+        }
+
+        container.innerHTML = items.map((item) => `
+          <div class="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs animate-pop">
+            <div class="flex items-center gap-2 truncate pr-2">
+              <span class="text-sm">🍥</span>
+              <span class="font-semibold text-slate-700 truncate">${escapeHtml(item.name)}</span>
+            </div>
+            <div class="flex items-center gap-2.5 shrink-0">
+              <span class="font-bold text-slate-900">${formatCurrency(item.price)}</span>
+              <button type="button" data-remove-special="${item.id}"
+                class="w-6 h-6 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center font-bold transition"
+                title="ลบรายการนี้">
+                ✕
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function renderDiscountSection(summary) {
+        const pill = $('discount-summary-pill');
+        const btnFixed = $('btn-disc-type-fixed');
+        const btnPercent = $('btn-disc-type-percent');
+        const inputVal = $('input-discount-value');
+        const unitLabel = $('discount-unit-label');
+        const capWarning = $('discount-cap-warning');
+        const slipDiscLabel = $('slip-discount-label');
+        const splitModeRow = $('discount-split-mode-row');
+        const percentHint = $('discount-percent-hint');
+        const btnSplitEqual = $('btn-disc-split-equal');
+        const btnSplitProp = $('btn-disc-split-proportional');
+
+        const isPercent = appState.discount.type === 'percent';
+        const splitMode = appState.discount.splitMode === 'proportional' ? 'proportional' : 'equal';
+
+        if (btnFixed && btnPercent) {
+          if (isPercent) {
+            btnPercent.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-white text-slate-800 shadow-2xs';
+            btnFixed.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-500 hover:text-slate-800';
+          } else {
+            btnFixed.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-white text-slate-800 shadow-2xs';
+            btnPercent.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-500 hover:text-slate-800';
+          }
+        }
+
+        // Toggle Fixed Split Mode Row vs Percent Hint
+        if (splitModeRow && percentHint) {
+          if (isPercent) {
+            splitModeRow.classList.add('hidden');
+            percentHint.classList.remove('hidden');
+          } else {
+            splitModeRow.classList.remove('hidden');
+            percentHint.classList.add('hidden');
+          }
+        }
+
+        if (btnSplitEqual && btnSplitProp) {
+          if (splitMode === 'equal') {
+            btnSplitEqual.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-white text-rose-700 shadow-2xs border border-rose-200/80';
+            btnSplitProp.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-500 hover:text-slate-800';
+          } else {
+            btnSplitProp.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition bg-white text-rose-700 shadow-2xs border border-rose-200/80';
+            btnSplitEqual.className = 'px-2.5 py-1 rounded-lg text-[11px] font-bold transition text-slate-500 hover:text-slate-800';
+          }
+        }
+
+        if (unitLabel) {
+          unitLabel.textContent = isPercent ? '%' : '฿';
+        }
+
+        if (inputVal && document.activeElement !== inputVal) {
+          inputVal.value = appState.discount.value > 0 ? appState.discount.value : '';
+        }
+
+        if (pill) {
+          if (summary.globalDiscountTHB > 0) {
+            pill.classList.remove('hidden');
+            if (isPercent) {
+              pill.textContent = `ลด ${Math.min(100, appState.discount.value)}% (-${formatCurrency(summary.globalDiscountTHB)})`;
+            } else {
+              const modeShort = splitMode === 'equal' ? 'หารเท่า' : 'ตามสัดส่วน';
+              pill.textContent = `-${formatCurrency(summary.globalDiscountTHB)} (${modeShort})`;
+            }
+          } else {
+            pill.classList.add('hidden');
+            pill.textContent = '';
+          }
+        }
+
+        if (slipDiscLabel) {
+          slipDiscLabel.textContent = summary.tableDiscountLabel || 'ส่วนลดท้ายบิล (Discount)';
+        }
+
+        if (capWarning) {
+          if (summary.isDiscountCapped) {
+            capWarning.classList.remove('hidden');
+          } else {
+            capWarning.classList.add('hidden');
+          }
+        }
+      }
+
+      function renderCounterScreen() {
+        ensureEntityRecords();
+        const summary = calculateBillSummary();
+        renderCounterTopBar(summary);
+        renderMemberTabsCarousel();
+        renderActiveTabStatusBar();
+        renderPlatesGrid();
+        renderSpecialItemsList();
+      }
+
+      function updatePlateCount(price, delta) {
+        ensureEntityRecords();
+        if (!appState.platesRecord[activeTabId]) {
+          appState.platesRecord[activeTabId] = {};
+        }
+        const current = Number(appState.platesRecord[activeTabId][price]) || 0;
+        const next = Math.max(0, current + delta);
+        if (next === 0) {
+          delete appState.platesRecord[activeTabId][price];
+        } else {
+          appState.platesRecord[activeTabId][price] = next;
+        }
+
+        saveState();
+        const summary = calculateBillSummary();
+        renderCounterTopBar(summary);
+        renderMemberTabsCarousel();
+        renderActiveTabStatusBar();
+        renderPlatesGrid();
+
+        // Bounce badge animation
+        const badge = $(`plate-badge-${price}`);
+        if (badge) {
+          badge.classList.remove('badge-bounce');
+          void badge.offsetWidth;
+          badge.classList.add('badge-bounce');
+        }
+      }
+
+      function clearActiveTabPlates() {
+        ensureEntityRecords();
+        const st = getEntityRawSubtotal(activeTabId);
+        if (st.platesCount <= 0) return;
+
+        const isShared = activeTabId === SHARED_POOL_ID;
+        const memberObj = appState.members.find((m) => m.id === activeTabId);
+        const targetName = isShared ? 'กองกลาง' : (memberObj ? memberObj.name : 'คนนี้');
+
+        if (!confirm(`ยืนยันการล้างจานทั้งหมดของ "${targetName}" (${st.platesCount} จาน)?\n(จะล้างเฉพาะจานของ ${targetName} เท่านั้น จานของคนอื่นในโต๊ะยังอยู่ครบ)`)) {
+          return;
+        }
+
+        appState.platesRecord[activeTabId] = {};
+        saveState();
+
+        const summary = calculateBillSummary();
+        renderCounterTopBar(summary);
+        renderMemberTabsCarousel();
+        renderActiveTabStatusBar();
+        renderPlatesGrid();
+        showToast(`🗑️ ล้างจานของ "${targetName}" เรียบร้อยแล้ว`);
+      }
+
+      function addSpecialItem(name, price) {
+        const cleanName = String(name || '').trim();
+        const numPrice = round2(Number(price));
+
+        if (!cleanName) {
+          showToast('⚠️ กรุณาระบุชื่อเมนูพิเศษ');
+          return false;
+        }
+        if (isNaN(numPrice) || numPrice <= 0) {
+          showToast('⚠️ กรุณาระบุราคาที่มากกว่า 0 บาท');
+          return false;
+        }
+
+        ensureEntityRecords();
+        appState.specialItems[activeTabId].push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          name: cleanName,
+          price: numPrice
+        });
+
+        saveState();
+        const summary = calculateBillSummary();
+        renderCounterTopBar(summary);
+        renderMemberTabsCarousel();
+        renderActiveTabStatusBar();
+        renderSpecialItemsList();
+        return true;
+      }
+
+      function removeSpecialItem(itemId) {
+        ensureEntityRecords();
+        const list = appState.specialItems[activeTabId] || [];
+        appState.specialItems[activeTabId] = list.filter((item) => String(item.id) !== String(itemId));
+        saveState();
+
+        const summary = calculateBillSummary();
+        renderCounterTopBar(summary);
+        renderMemberTabsCarousel();
+        renderActiveTabStatusBar();
+        renderSpecialItemsList();
+      }
+
+      // --- 9. SCREEN 3: CHECKOUT & SETTLEMENT RENDERING ---
+      function formatThaiDateTime(date) {
+        try {
+          return date.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }) + ' น.';
+        } catch (e) {
+          return date.toLocaleString();
+        }
+      }
+
+      let isPromptPayInputMasked = true;
+      let isPromptPayCardExpanded = null;
+
+      function maskAccountOrPromptPayId(rawId) {
+        const trimmed = String(rawId || '').trim();
+        if (!trimmed) return '';
+        const digits = trimmed.replace(/[^0-9]/g, '');
+
+        // 10-digit Thai Mobile Phone (06X, 08X, 09X): 08X-XXX-1234
+        if (digits.length === 10 && /^0[689]\d{8}$/.test(digits)) {
+          return `${digits.slice(0, 2)}X-XXX-${digits.slice(6)}`;
+        }
+        // 13-digit National ID: 1-XXXX-XXXXX-12-3
+        if (digits.length === 13) {
+          return `${digits.slice(0, 1)}-XXXX-XXXXX-${digits.slice(10, 12)}-${digits.slice(12)}`;
+        }
+        // Fallback while typing or incomplete
+        if (digits.length > 4) {
+          return digits.slice(0, 2) + 'X'.repeat(digits.length - 4) + digits.slice(-2);
+        }
+        return trimmed;
+      }
+
+      function renderPromptPayCardState() {
+        const cardBody = $('pp-card-body');
+        const compactSummary = $('pp-compact-summary');
+        const savedBadge = $('pp-saved-badge');
+        const actionLabel = $('pp-collapse-action-label');
+        const btnClearPP = $('btn-clear-pp-data');
+
+        const rawId = String(appState.promptPay.id || '').trim();
+        const cleanDigits = rawId.replace(/[^0-9]/g, '');
+        const rawName = String(appState.promptPay.name || '').trim();
+        const hasPPData = Boolean(rawId || rawName);
+        const isValidPP = Boolean(generatePromptPayPayload(cleanDigits, null));
+
+        if (isPromptPayCardExpanded === null) {
+          // Auto-collapse when a valid PromptPay ID is already saved; auto-expand otherwise
+          isPromptPayCardExpanded = !isValidPP;
+        }
+
+        if (savedBadge) {
+          if (isValidPP) savedBadge.classList.remove('hidden');
+          else savedBadge.classList.add('hidden');
+        }
+
+        if (btnClearPP) {
+          if (hasPPData) btnClearPP.classList.remove('hidden');
+          else btnClearPP.classList.add('hidden');
+        }
+
+        if (compactSummary) {
+          if (isValidPP) {
+            const maskedPart = maskAccountOrPromptPayId(rawId);
+            const namePart = rawName ? ` • ${rawName}` : '';
+            compactSummary.textContent = `${maskedPart}${namePart}`;
+            compactSummary.className = 'text-[11px] font-semibold text-slate-700 truncate';
+          } else if (rawId) {
+            compactSummary.textContent = '⚠️ รูปแบบเบอร์พร้อมเพย์ไม่ถูกต้อง • แตะเพื่อแก้ไข';
+            compactSummary.className = 'text-[11px] text-rose-600 font-medium truncate';
+          } else {
+            compactSummary.textContent = 'ยังไม่ได้ระบุเบอร์พร้อมเพย์ • แตะเพื่อตั้งค่า';
+            compactSummary.className = 'text-[11px] text-amber-600 font-medium truncate';
+          }
+        }
+
+        if (cardBody && actionLabel) {
+          if (isPromptPayCardExpanded) {
+            cardBody.classList.remove('hidden');
+            actionLabel.textContent = 'พับเก็บ ▲';
+            actionLabel.className = 'text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0 transition';
+          } else {
+            cardBody.classList.add('hidden');
+            actionLabel.textContent = isValidPP ? 'แก้ไข ✎' : 'ตั้งค่า ▾';
+            actionLabel.className = 'text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 shrink-0 transition';
+          }
+        }
+      }
+
+      function syncPromptPayInputDisplay() {
+        const ppIdInput = $('input-promptpay-id');
+        const toggleBtn = $('btn-toggle-pp-visibility');
+        if (!ppIdInput) return;
+
+        if (document.activeElement === ppIdInput || !isPromptPayInputMasked) {
+          ppIdInput.value = appState.promptPay.id || '';
+          if (toggleBtn) toggleBtn.textContent = '🙈 ซ่อนเลข';
+        } else {
+          const cleanDigits = String(appState.promptPay.id || '').replace(/[^0-9]/g, '');
+          const isValidPP = Boolean(generatePromptPayPayload(cleanDigits, null));
+          ppIdInput.value = (appState.promptPay.id && isValidPP)
+            ? maskAccountOrPromptPayId(appState.promptPay.id)
+            : (appState.promptPay.id || '');
+          if (toggleBtn) toggleBtn.textContent = '👁️ แสดงเลข';
+        }
+        renderPromptPayCardState();
+      }
+
+      function renderCheckoutScreen() {
+        const summary = calculateBillSummary();
+
+        // Populate PromptPay inputs (masked when not focused) & smart-collapsible state
+        syncPromptPayInputDisplay();
+        const ppNameInput = $('input-promptpay-name');
+        if (ppNameInput && document.activeElement !== ppNameInput) {
+          ppNameInput.value = appState.promptPay.name || '';
+        }
+
+        // Render Global Discount Bar (Fixed vs Percent & Equal vs Proportional)
+        renderDiscountSection(summary);
+
+        // Slip Header
+        const restNameEl = $('slip-restaurant-name');
+        const dateTimeEl = $('slip-datetime');
+        const badgeMembers = $('slip-badge-members');
+        const badgePlates = $('slip-badge-plates');
+        const badgeTax = $('slip-badge-tax');
+
+        if (restNameEl) restNameEl.textContent = getActiveRestaurantName();
+        if (dateTimeEl) dateTimeEl.textContent = formatThaiDateTime(new Date());
+        if (badgeMembers) badgeMembers.textContent = `สมาชิก ${appState.members.length} คน`;
+        if (badgePlates) {
+          const specialsPart = summary.totalSpecialsCount > 0 ? ` + ${summary.totalSpecialsCount} เมนูพิเศษ` : '';
+          badgePlates.textContent = `รวม ${summary.totalPlatesCount} จาน${specialsPart}`;
+        }
+
+        const isSC = appState.taxSettings.isServiceCharge;
+        const isVAT = appState.taxSettings.isVat;
+        if (badgeTax) {
+          if (isSC && isVAT) badgeTax.textContent = 'Service Charge 10% + VAT 7%';
+          else if (isSC) badgeTax.textContent = '+ Service Charge 10% (ไม่มี VAT เพิ่ม)';
+          else if (isVAT) badgeTax.textContent = 'VAT 7% (ไม่มี Service Charge)';
+          else badgeTax.textContent = 'Net Price (ไม่บวกเพิ่ม)';
+        }
+
+        // Table Financial Totals
+        const elSubtotal = $('slip-table-subtotal');
+        const elSharedRow = $('slip-shared-row');
+        const elShared = $('slip-table-shared');
+        const elDiscRow = $('slip-discount-row');
+        const elDisc = $('slip-table-discount');
+        const elSCRow = $('slip-sc-row');
+        const elSC = $('slip-table-sc');
+        const elVATRow = $('slip-vat-row');
+        const elVAT = $('slip-table-vat');
+        const elNet = $('slip-table-net-total');
+
+        if (elSubtotal) elSubtotal.textContent = formatCurrency(summary.tableSubtotalBeforeTax);
+        if (elSharedRow && elShared) {
+          if (summary.sharedTotalRaw > 0) {
+            elSharedRow.classList.remove('hidden');
+            elShared.textContent = `${formatCurrency(summary.sharedTotalRaw)} (คนละ ${formatCurrency(summary.perPersonShared)})`;
+          } else {
+            elSharedRow.classList.add('hidden');
+          }
+        }
+
+        if (elDiscRow && elDisc) {
+          if (summary.globalDiscountTHB > 0) {
+            elDiscRow.classList.remove('hidden');
+            elDisc.textContent = `-${formatCurrency(summary.globalDiscountTHB)}`;
+          } else {
+            elDiscRow.classList.add('hidden');
+          }
+        }
+
+        if (elSCRow && elSC) {
+          if (isSC) {
+            elSCRow.classList.remove('hidden');
+            elSC.textContent = formatCurrency(summary.tableSCAmount);
+          } else {
+            elSCRow.classList.add('hidden');
+          }
+        }
+
+        if (elVATRow && elVAT) {
+          elVATRow.classList.remove('hidden');
+          if (isVAT) {
+            elVAT.textContent = formatCurrency(summary.tableVATAmount);
+            elVAT.className = 'font-medium text-slate-800 shrink-0';
+          } else {
+            elVAT.textContent = 'รวมในราคาอาหารแล้ว';
+            elVAT.className = 'font-medium text-slate-500 shrink-0';
+          }
+        }
+
+        if (elNet) elNet.textContent = formatCurrency(summary.tableNetTotal);
+
+        // Render Transparent Individual Breakdown (Interactive QR only for members with netAmount > 0)
+        const breakdownContainer = $('slip-members-breakdown');
+        if (breakdownContainer) {
+          breakdownContainer.innerHTML = summary.memberBreakdowns.map((mb, idx) => {
+            const itemCountDesc = `${mb.platesCount} จาน${mb.specialsCount > 0 ? ` + ${mb.specialsCount} เมนูพิเศษ` : ''}`;
+            const isZeroNet = mb.netAmount <= 0;
+            const cardAttrs = isZeroNet
+              ? `class="bg-slate-50/75 border border-slate-200/90 rounded-2xl p-3.5 space-y-2 transition"`
+              : `data-member-qr-card="${escapeHtml(mb.id)}" role="button" tabindex="0" class="bg-slate-50 hover:bg-blue-50/50 active:scale-[0.99] border border-slate-200 hover:border-blue-300 rounded-2xl p-3.5 space-y-2 transition cursor-pointer"`;
+
+            return `
+              <div ${cardAttrs}>
+                <!-- Member Header Row -->
+                <div class="flex items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
+                  <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                    <span class="w-5 h-5 rounded-full ${isZeroNet ? 'bg-slate-400' : 'bg-slate-800'} text-white text-[11px] font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+                    <span class="font-bold text-sm text-slate-900 break-words leading-snug">${escapeHtml(mb.name)}</span>
+                    ${isZeroNet ? `
+                      <span class="text-[10px] font-semibold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-md border border-slate-300/70 shrink-0 inline-flex items-center gap-1">
+                        🎉 ไม่มียอดสำหรับมื้อนี้
+                      </span>
+                    ` : `
+                      <span data-html2canvas-ignore="true" class="text-[10px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200 shrink-0 inline-flex items-center gap-1">
+                        📲 กดดู QR
+                      </span>
+                    `}
+                  </div>
+                  <div class="text-right shrink-0">
+                    <span class="block text-[10px] text-slate-400 font-medium leading-none">${isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน'}</span>
+                    <span class="text-base font-extrabold ${isZeroNet ? 'text-slate-400' : 'text-emerald-700'} leading-tight">${formatCurrency(mb.netAmount)}</span>
+                  </div>
+                </div>
+
+                <!-- Clear Itemized Breakdown Rows -->
+                <div class="space-y-1 text-[11px] text-slate-600 leading-normal">
+                  <div class="flex justify-between items-center gap-2">
+                    <span>🍣 กินของตัวเอง (${itemCountDesc})</span>
+                    <span class="font-semibold text-slate-800 shrink-0">${formatCurrency(mb.personalRaw)}</span>
+                  </div>
+                  <div class="flex justify-between items-center gap-2">
+                    <span>🥢 หารกองกลาง</span>
+                    <span class="font-semibold text-slate-800 shrink-0">${formatCurrency(mb.sharedShare)}</span>
+                  </div>
+                  ${mb.discount > 0 ? `
+                    <div class="flex justify-between items-center gap-2 text-rose-600">
+                      <span>🏷️ ${escapeHtml(mb.discountLabel || 'ส่วนลดท้ายบิล')}</span>
+                      <span class="font-semibold shrink-0">-${formatCurrency(mb.discount)}</span>
+                    </div>
+                  ` : ''}
+                  ${isSC ? `
+                    <div class="flex justify-between items-center gap-2 text-slate-500">
+                      <span>➕ Service Charge (10%)</span>
+                      <span class="font-medium text-slate-700 shrink-0">${formatCurrency(mb.scAmount)}</span>
+                    </div>
+                  ` : ''}
+                  ${isVAT ? `
+                    <div class="flex justify-between items-center gap-2 text-slate-500">
+                      <span>➕ VAT (7%)</span>
+                      <span class="font-medium text-slate-700 shrink-0">${formatCurrency(mb.vatAmount)}</span>
+                    </div>
+                  ` : `
+                    <div class="flex justify-between items-center gap-2 text-slate-400">
+                      <span>ℹ️ VAT (7%)</span>
+                      <span class="font-medium text-slate-500 shrink-0">รวมในราคาอาหารแล้ว</span>
+                    </div>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // Render Main PromptPay QR (Single QR at bottom of slip)
+        renderMainPromptPayQR();
+      }
+
+      function renderMainPromptPayQR() {
+        const ppBox = $('slip-promptpay-box');
+        const qrWrapper = $('main-qr-code-wrapper');
+        const qrContainer = $('main-qr-code');
+        const nameEl = $('slip-pp-account-name');
+        const idEl = $('slip-pp-account-id');
+        const msgEl = $('promptpay-validation-msg');
+        const footerHint = $('slip-pp-footer-hint');
+
+        if (!ppBox || !qrContainer) return;
+
+        const rawInput = String(appState.promptPay.id || '').trim();
+        const cleanDigits = rawInput.replace(/[^0-9]/g, '');
+        const payload = generatePromptPayPayload(cleanDigits, null);
+
+        if (!rawInput) {
+          ppBox.classList.add('hidden');
+          if (msgEl) {
+            msgEl.textContent = '💡 กรอกเบอร์มือถือพร้อมเพย์ 10 หลัก (06/08/09) หรือเลขบัตรประชาชน 13 หลัก เพื่อสร้าง QR Code ท้ายใบเสร็จ';
+            msgEl.className = 'text-[11px] text-slate-400 leading-relaxed';
+          }
+          return;
+        }
+
+        if (!payload) {
+          ppBox.classList.add('hidden');
+          if (msgEl) {
+            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเฉพาะเบอร์มือถือพร้อมเพย์ 10 หลัก (ขึ้นต้น 06, 08, 09) หรือเลขบัตรประชาชน 13 หลัก (ไม่รองรับเลขบัญชีธนาคาร)';
+            msgEl.className = 'text-[11px] text-rose-600 font-medium leading-relaxed';
+          }
+          return;
+        }
+
+        ppBox.classList.remove('hidden');
+        if (qrWrapper) qrWrapper.classList.remove('hidden');
+
+        if (nameEl) {
+          nameEl.textContent = appState.promptPay.name
+            ? `ชื่อบัญชี: ${appState.promptPay.name}`
+            : 'โอนเงินให้คนจ่ายเงิน';
+        }
+
+        if (idEl) {
+          idEl.textContent = `PromptPay ID: ${maskAccountOrPromptPayId(rawInput)}`;
+          idEl.classList.remove('hidden');
+        }
+
+        if (footerHint) {
+          footerHint.textContent = 'สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย';
+        }
+
+        if (msgEl) {
+          msgEl.textContent = `✅ สร้าง PromptPay QR Code เรียบร้อย • แสดงเลขแบบซ่อนบางส่วน (${maskAccountOrPromptPayId(rawInput)}) เพื่อความปลอดภัย`;
+          msgEl.className = 'text-[11px] text-emerald-600 font-medium leading-relaxed';
+        }
+
+        qrContainer.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrContainer, {
+            text: payload,
+            width: 164,
+            height: 164,
+            colorDark: '#0f172a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }
+
+      // --- 10. INDIVIDUAL MEMBER QR MODAL ---
+      function openMemberQRModal(memberId) {
+        const modal = $('modal-member-qr');
+        if (!modal) return;
+
+        const summary = calculateBillSummary();
+        const mb = summary.memberBreakdowns.find((m) => m.id === memberId);
+        // Zero-amount members do not have a QR modal
+        if (!mb || mb.netAmount <= 0) return;
+
+        const nameEl = $('modal-qr-member-name');
+        const detailEl = $('modal-qr-member-detail');
+        const netEl = $('modal-qr-net-amount');
+        const presentState = $('modal-qr-present-state');
+        const missingState = $('modal-qr-missing-state');
+        const zeroState = $('modal-qr-zero-state');
+        const qrTarget = $('modal-individual-qrcode');
+        const hostInfo = $('modal-qr-host-info');
+        const breakdownBox = $('modal-qr-breakdown-box');
+
+        if (zeroState) zeroState.classList.add('hidden');
+        if (nameEl) nameEl.textContent = mb.name;
+        if (detailEl) {
+          detailEl.textContent = `จานส่วนตัว ${mb.platesCount} จาน${mb.specialsCount > 0 ? ` • เมนูพิเศษ ${mb.specialsCount} รายการ` : ''}`;
+        }
+        if (netEl) netEl.textContent = formatCurrency(mb.netAmount);
+
+        if (breakdownBox) {
+          const isSC = Boolean(appState.taxSettings.isServiceCharge);
+          const isVAT = Boolean(appState.taxSettings.isVat);
+          breakdownBox.innerHTML = `
+            <div class="flex justify-between text-slate-600">
+              <span>กินของตัวเอง:</span>
+              <span class="font-semibold">${formatCurrency(mb.personalRaw)}</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <span>หารกองกลาง:</span>
+              <span class="font-semibold">${formatCurrency(mb.sharedShare)}</span>
+            </div>
+            ${mb.discount > 0 ? `
+              <div class="flex justify-between text-rose-600">
+                <span>${escapeHtml(mb.discountLabel || 'ส่วนลดท้ายบิล')}:</span>
+                <span class="font-semibold">-${formatCurrency(mb.discount)}</span>
+              </div>
+            ` : ''}
+            ${isSC ? `
+              <div class="flex justify-between text-slate-500">
+                <span>Service Charge (10%):</span>
+                <span class="font-medium">+${formatCurrency(mb.scAmount)}</span>
+              </div>
+            ` : ''}
+            ${isVAT ? `
+              <div class="flex justify-between text-slate-500">
+                <span>VAT (7%):</span>
+                <span class="font-medium">+${formatCurrency(mb.vatAmount)}</span>
+              </div>
+            ` : `
+              <div class="flex justify-between text-slate-400">
+                <span>VAT (7%):</span>
+                <span class="font-medium text-slate-500">รวมในราคาอาหารแล้ว</span>
+              </div>
+            `}
+            <div class="flex justify-between text-slate-800 font-bold border-t border-slate-200 pt-1.5 mt-1">
+              <span>ยอดสุทธิที่ต้องโอน:</span>
+              <span class="text-emerald-700">${formatCurrency(mb.netAmount)}</span>
+            </div>
+          `;
+        }
+
+        const cleanId = String(appState.promptPay.id || '').replace(/[^0-9]/g, '');
+        const payload = generatePromptPayPayload(cleanId, mb.netAmount);
+
+        if (payload && presentState && missingState && qrTarget) {
+          presentState.classList.remove('hidden');
+          missingState.classList.add('hidden');
+          qrTarget.innerHTML = '';
+
+          if (typeof QRCode !== 'undefined') {
+            new QRCode(qrTarget, {
+              text: payload,
+              width: 190,
+              height: 190,
+              colorDark: '#1e3a8a',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          }
+
+          if (hostInfo) {
+            const accName = appState.promptPay.name ? `${appState.promptPay.name} • ` : '';
+            hostInfo.textContent = `${accName}${maskAccountOrPromptPayId(cleanId)}`;
+          }
+        } else if (presentState && missingState) {
+          presentState.classList.add('hidden');
+          missingState.classList.remove('hidden');
+        }
+
+        modal.classList.remove('hidden');
+      }
+
+      function closeMemberQRModal() {
+        const modal = $('modal-member-qr');
+        if (modal) modal.classList.add('hidden');
+      }
+
+      // --- 11. EXPORT SLIP AS PNG (Native HTML5 2D Canvas Renderer — Zero Clipping, Balanced Boxes) ---
+      function drawRoundedRectPath(ctx, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function fillAndStrokeRoundRect(ctx, x, y, w, h, r, fillColor, strokeColor, lineWidth = 1) {
+        drawRoundedRectPath(ctx, x, y, w, h, r);
+        if (fillColor) {
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+        }
+        if (strokeColor) {
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = lineWidth;
+          ctx.stroke();
+        }
+      }
+
+      function wrapCanvasText(ctx, text, maxWidth) {
+        const str = String(text || '');
+        if (!str) return [''];
+        if (ctx.measureText(str).width <= maxWidth) return [str];
+
+        const lines = [];
+        let currentLine = '';
+        for (let i = 0; i < str.length; i++) {
+          const testLine = currentLine + str[i];
+          if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine);
+            currentLine = str[i];
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
+      }
+
+      function getRenderedQRDrawable() {
+        const qrContainer = $('main-qr-code');
+        if (!qrContainer) return null;
+        const qrCanvas = qrContainer.querySelector('canvas');
+        if (qrCanvas && qrCanvas.width > 0) return qrCanvas;
+        const qrImg = qrContainer.querySelector('img');
+        if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) return qrImg;
+        return null;
+      }
+
+      function renderSlipToNativeCanvas() {
+        const summary = calculateBillSummary();
+        const isSC = Boolean(appState.taxSettings.isServiceCharge);
+        const isVAT = Boolean(appState.taxSettings.isVat);
+        const restName = getActiveRestaurantName();
+        const dateTimeStr = formatThaiDateTime(new Date());
+
+        const rawPPId = String(appState.promptPay.id || '').trim();
+        const cleanPPDigits = rawPPId.replace(/[^0-9]/g, '');
+        const rawPPName = String(appState.promptPay.name || '').trim();
+        const ppPayload = generatePromptPayPayload(cleanPPDigits, null);
+        const qrDrawable = ppPayload ? getRenderedQRDrawable() : null;
+        const hasPPBox = Boolean(ppPayload && qrDrawable);
+
+        const W = 520;
+        const PAD = 28;
+        const INNER_W = W - PAD * 2;
+        const SCALE = 3;
+        const FONT_FAMILY = "'Kanit', -apple-system, BlinkMacSystemFont, sans-serif";
+
+        // Measure pass on offscreen context to compute exact dynamic height
+        const measureCanvas = document.createElement('canvas');
+        const mCtx = measureCanvas.getContext('2d');
+
+        // Prepare header badges
+        const specialsBadgePart = summary.totalSpecialsCount > 0 ? ` + ${summary.totalSpecialsCount} เมนูพิเศษ` : '';
+        const badgeTexts = [
+          `สมาชิก ${appState.members.length} คน`,
+          `รวม ${summary.totalPlatesCount} จาน${specialsBadgePart}`,
+          isSC && isVAT
+            ? 'Service Charge 10% + VAT 7%'
+            : isSC
+              ? '+ Service Charge 10% (ไม่มี VAT เพิ่ม)'
+              : isVAT
+                ? 'VAT 7% (ไม่มี Service Charge)'
+                : 'Net Price (ไม่บวกเพิ่ม)'
+        ];
+
+        // Pre-calculate badge positions (supports multi-line wrapping if badges exceed INNER_W)
+        mCtx.font = `600 12px ${FONT_FAMILY}`;
+        const badgePositions = [];
+        let simBadgeX = PAD;
+        let simBadgeRow = 0;
+        const badgeH = 28;
+        badgeTexts.forEach((bText, bIdx) => {
+          const textW = mCtx.measureText(bText).width;
+          const pillW = Math.ceil(textW + 22);
+          if (simBadgeX + pillW > W - PAD && simBadgeX > PAD) {
+            simBadgeRow++;
+            simBadgeX = PAD;
+          }
+          badgePositions.push({
+            text: bText,
+            isAmber: bIdx === 2,
+            x: simBadgeX,
+            y: 100 + simBadgeRow * 34,
+            w: pillW,
+            h: badgeH
+          });
+          simBadgeX += pillW + 8;
+        });
+
+        // Calculate Table Summary rows
+        const tableRows = [
+          {
+            label: 'ค่าอาหารรวม (Subtotal)',
+            value: formatCurrency(summary.tableSubtotalBeforeTax),
+            labelColor: '#475569',
+            valueColor: '#0f172a',
+            bold: true
+          }
+        ];
+        if (summary.sharedTotalRaw > 0) {
+          tableRows.push({
+            label: '↳ แบ่งเป็นกองกลาง',
+            value: `${formatCurrency(summary.sharedTotalRaw)} (คนละ ${formatCurrency(summary.perPersonShared)})`,
+            labelColor: '#64748b',
+            valueColor: '#334155',
+            bold: false
+          });
+        }
+        if (summary.globalDiscountTHB > 0) {
+          tableRows.push({
+            label: summary.tableDiscountLabel || 'ส่วนลดท้ายบิล (Discount)',
+            value: `-${formatCurrency(summary.globalDiscountTHB)}`,
+            labelColor: '#e11d48',
+            valueColor: '#e11d48',
+            bold: true
+          });
+        }
+        if (isSC) {
+          tableRows.push({
+            label: 'Service Charge (10%)',
+            value: formatCurrency(summary.tableSCAmount),
+            labelColor: '#64748b',
+            valueColor: '#1e293b',
+            bold: false
+          });
+        }
+        tableRows.push({
+          label: 'VAT (7%)',
+          value: isVAT ? formatCurrency(summary.tableVATAmount) : 'รวมในราคาอาหารแล้ว',
+          labelColor: '#64748b',
+          valueColor: isVAT ? '#1e293b' : '#64748b',
+          bold: false
+        });
+
+        // Pre-calculate member card layouts
+        mCtx.font = `700 16px ${FONT_FAMILY}`;
+        const memberLayouts = summary.memberBreakdowns.map((mb, idx) => {
+          const nameMaxW = INNER_W - 36 - 34 - 145;
+          const nameLines = wrapCanvasText(mCtx, mb.name, nameMaxW);
+          const headerH = Math.max(40, nameLines.length * 22 + 12);
+
+          const itemCountDesc = `${mb.platesCount} จาน${mb.specialsCount > 0 ? ` + ${mb.specialsCount} เมนูพิเศษ` : ''}`;
+          const rows = [
+            {
+              label: `🍣 กินของตัวเอง (${itemCountDesc})`,
+              value: formatCurrency(mb.personalRaw),
+              labelColor: '#475569',
+              valueColor: '#1e293b',
+              bold: true
+            },
+            {
+              label: '🥢 หารกองกลาง',
+              value: formatCurrency(mb.sharedShare),
+              labelColor: '#475569',
+              valueColor: '#1e293b',
+              bold: true
+            }
+          ];
+
+          if (mb.discount > 0) {
+            rows.push({
+              label: `🏷️ ${mb.discountLabel || 'ส่วนลดท้ายบิล'}`,
+              value: `-${formatCurrency(mb.discount)}`,
+              labelColor: '#e11d48',
+              valueColor: '#e11d48',
+              bold: true
+            });
+          }
+          if (isSC) {
+            rows.push({
+              label: '➕ Service Charge (10%)',
+              value: formatCurrency(mb.scAmount),
+              labelColor: '#64748b',
+              valueColor: '#334155',
+              bold: false
+            });
+          }
+          if (isVAT) {
+            rows.push({
+              label: '➕ VAT (7%)',
+              value: formatCurrency(mb.vatAmount),
+              labelColor: '#64748b',
+              valueColor: '#334155',
+              bold: false
+            });
+          } else {
+            rows.push({
+              label: 'ℹ️ VAT (7%)',
+              value: 'รวมในราคาอาหารแล้ว',
+              labelColor: '#94a3b8',
+              valueColor: '#64748b',
+              bold: false
+            });
+          }
+
+          const cardH = 16 + headerH + 10 + rows.length * 26 + 14;
+          return { mb, idx, nameLines, headerH, rows, cardH };
+        });
+
+        // Compute Header height dynamically based on badge rows
+        const headerH = 152 + simBadgeRow * 34;
+
+        // Compute Table Summary Card height
+        const tableSummaryBoxH = 18 + tableRows.length * 30 + 14 + 58 + 16;
+
+        // Compute Members Section height
+        const membersHeaderH = 34;
+        const membersTotalCardsH = memberLayouts.reduce((acc, item) => acc + item.cardH + 12, 0);
+
+        // Compute PromptPay Footer Box height
+        let ppBoxH = 0;
+        if (hasPPBox) {
+          ppBoxH = 22 + 30 + 28 + 24 + 206 + 28 + 18;
+        }
+
+        const footerCreditH = 44;
+        const totalH = headerH + 24 + tableSummaryBoxH + 22 + membersHeaderH + membersTotalCardsH + (hasPPBox ? ppBoxH + 16 : 0) + footerCreditH;
+
+        // Create High-DPI Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = W * SCALE;
+        canvas.height = Math.ceil(totalH * SCALE);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(SCALE, SCALE);
+
+        // 1. Full Slip Background (Crisp White with Subtle Outer Border)
+        fillAndStrokeRoundRect(ctx, 0, 0, W, totalH, 24, '#ffffff', '#e2e8f0', 2);
+
+        // 2. Dark Slate Header Banner
+        ctx.save();
+        drawRoundedRectPath(ctx, 0, 0, W, headerH, 24);
+        ctx.clip();
+        const headerGrad = ctx.createLinearGradient(0, 0, W, headerH);
+        headerGrad.addColorStop(0, '#0f172a');
+        headerGrad.addColorStop(1, '#1e293b');
+        ctx.fillStyle = headerGrad;
+        ctx.fillRect(0, 0, W, headerH);
+        ctx.restore();
+        // Square off bottom corners of header banner
+        ctx.fillStyle = headerGrad;
+        ctx.fillRect(0, headerH - 24, W, 24);
+
+        // Header Top Row: Brand & Date/Time
+        ctx.textBaseline = 'middle';
+        ctx.font = `700 13px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#fb7185';
+        ctx.textAlign = 'left';
+        ctx.fillText('🍣 GeeBaht (กี่บาท)', PAD, 30);
+
+        ctx.font = `500 12px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'right';
+        ctx.fillText('ใบสรุปยอดหารค่าซูชิ', W - PAD, 28);
+
+        ctx.font = `500 12px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(dateTimeStr, W - PAD, 48);
+
+        // Restaurant Name
+        ctx.textAlign = 'left';
+        ctx.font = `700 24px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(restName, PAD, 66);
+
+        // Header Badges Row (Centered inside pill boxes with textBaseline = 'middle', multi-line safe)
+        ctx.font = `600 12px ${FONT_FAMILY}`;
+        badgePositions.forEach((bp) => {
+          fillAndStrokeRoundRect(
+            ctx,
+            bp.x,
+            bp.y,
+            bp.w,
+            bp.h,
+            999,
+            bp.isAmber ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.12)',
+            bp.isAmber ? 'rgba(251, 191, 36, 0.35)' : 'rgba(255, 255, 255, 0.18)',
+            1
+          );
+          ctx.fillStyle = bp.isAmber ? '#fde68a' : '#f1f5f9';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(bp.text, bp.x + bp.w / 2, bp.y + bp.h / 2);
+        });
+
+        // 3. Table Financial Summary Box
+        let curY = headerH + 22;
+        fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, tableSummaryBoxH, 18, '#f8fafc', '#e2e8f0', 1.5);
+
+        let rowY = curY + 18;
+        tableRows.forEach((r) => {
+          const rowCenterY = rowY + 15;
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'left';
+          ctx.font = `${r.bold ? '600' : '500'} 13.5px ${FONT_FAMILY}`;
+          ctx.fillStyle = r.labelColor;
+          ctx.fillText(r.label, PAD + 16, rowCenterY);
+
+          ctx.textAlign = 'right';
+          ctx.font = `${r.bold ? '700' : '600'} 13.5px ${FONT_FAMILY}`;
+          ctx.fillStyle = r.valueColor;
+          ctx.fillText(r.value, PAD + INNER_W - 16, rowCenterY);
+          rowY += 30;
+        });
+
+        // Net Total Highlight Bar inside Table Summary Box
+        const netBoxY = rowY + 8;
+        const netBoxH = 54;
+        fillAndStrokeRoundRect(ctx, PAD + 12, netBoxY, INNER_W - 24, netBoxH, 14, '#ecfdf5', '#a7f3d0', 1.5);
+
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.font = `700 15px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#064e3b';
+        ctx.fillText('ยอดสุทธิรวมทั้งโต๊ะ (Net Total)', PAD + 26, netBoxY + netBoxH / 2);
+
+        ctx.textAlign = 'right';
+        ctx.font = `800 22px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#047857';
+        ctx.fillText(formatCurrency(summary.tableNetTotal), PAD + INNER_W - 26, netBoxY + netBoxH / 2);
+
+        curY += tableSummaryBoxH + 22;
+
+        // 4. Individual Member Breakdown Header
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.font = `700 15px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillText('👥 ยอดที่แต่ละคนต้องจ่าย', PAD, curY + 12);
+
+        ctx.textAlign = 'right';
+        ctx.font = `600 11.5px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('คำนวณครบทุกสตางค์', W - PAD, curY + 12);
+
+        curY += membersHeaderH;
+
+        // 5. Render Each Member Breakdown Card
+        memberLayouts.forEach((item) => {
+          const { mb, idx, nameLines, headerH: mHeaderH, rows, cardH } = item;
+          const isZeroNet = mb.netAmount <= 0;
+
+          fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, cardH, 16, '#f8fafc', '#e2e8f0', 1.2);
+
+          // Number Circle Badge
+          const circleR = 12;
+          const circleCX = PAD + 16 + circleR;
+          const circleCY = curY + 16 + 18;
+          ctx.beginPath();
+          ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
+          ctx.fillStyle = isZeroNet ? '#94a3b8' : '#1e293b';
+          ctx.fill();
+
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          ctx.font = `700 12px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(String(idx + 1), circleCX, circleCY);
+
+          // Member Name (Multi-line safe)
+          ctx.textAlign = 'left';
+          ctx.font = `700 16px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#0f172a';
+          const nameStartX = circleCX + circleR + 10;
+          nameLines.forEach((line, lIdx) => {
+            const lineY = nameLines.length === 1
+              ? circleCY
+              : (curY + 16 + 12 + lIdx * 22);
+            ctx.fillText(line, nameStartX, lineY);
+          });
+
+          // Right-aligned Member Net Amount (or zero-amount notice)
+          ctx.textAlign = 'right';
+          ctx.font = `500 11px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#64748b';
+          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 16, curY + 16 + 8);
+
+          ctx.font = `800 18px ${FONT_FAMILY}`;
+          ctx.fillStyle = isZeroNet ? '#94a3b8' : '#047857';
+          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 16, curY + 16 + 28);
+
+          // Divider Line
+          const divY = curY + 16 + mHeaderH;
+          ctx.beginPath();
+          ctx.moveTo(PAD + 16, divY);
+          ctx.lineTo(PAD + INNER_W - 16, divY);
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Itemized Rows
+          let mRowY = divY + 10;
+          rows.forEach((r) => {
+            const centerY = mRowY + 13;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'left';
+            ctx.font = `${r.bold ? '500' : '400'} 12.5px ${FONT_FAMILY}`;
+            ctx.fillStyle = r.labelColor;
+            ctx.fillText(r.label, PAD + 16, centerY);
+
+            ctx.textAlign = 'right';
+            ctx.font = `${r.bold ? '700' : '600'} 12.5px ${FONT_FAMILY}`;
+            ctx.fillStyle = r.valueColor;
+            ctx.fillText(r.value, PAD + INNER_W - 16, centerY);
+            mRowY += 26;
+          });
+
+          curY += cardH + 12;
+        });
+
+        // 6. PromptPay QR Box at Bottom of Slip (Rendered only when valid PromptPay QR exists)
+        if (hasPPBox) {
+          curY += 4;
+          fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, ppBoxH, 18, '#eff6ff', '#bfdbfe', 1.5);
+
+          let ppY = curY + 20;
+
+          const ppBadgeText = '📲 สแกน PromptPay เพื่อโอนเงิน';
+          ctx.font = `700 12px ${FONT_FAMILY}`;
+          const ppBadgeW = Math.ceil(ctx.measureText(ppBadgeText).width + 28);
+          const ppBadgeH = 28;
+          fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, '#1d4ed8', null, 0);
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(ppBadgeText, W / 2, ppY + ppBadgeH / 2);
+
+          ppY += ppBadgeH + 18;
+
+          // Account Name
+          const displayAccName = rawPPName ? `ชื่อบัญชี: ${rawPPName}` : 'โอนเงินให้คนจ่ายเงิน';
+          ctx.font = `700 15px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillText(displayAccName, W / 2, ppY);
+          ppY += 24;
+
+          // Masked PromptPay ID
+          ctx.font = `600 13px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#475569';
+          ctx.fillText(`PromptPay ID: ${maskAccountOrPromptPayId(rawPPId)}`, W / 2, ppY);
+          ppY += 22;
+
+          // QR Code Image
+          const qrFrameSize = 188;
+          const qrSize = 164;
+          const qrFrameX = (W - qrFrameSize) / 2;
+          const qrFrameY = ppY + 4;
+          fillAndStrokeRoundRect(ctx, qrFrameX, qrFrameY, qrFrameSize, qrFrameSize, 16, '#ffffff', '#dbeafe', 1.5);
+          ctx.drawImage(
+            qrDrawable,
+            qrFrameX + (qrFrameSize - qrSize) / 2,
+            qrFrameY + (qrFrameSize - qrSize) / 2,
+            qrSize,
+            qrSize
+          );
+          ppY += qrFrameSize + 22;
+
+          // Footer Hint
+          ctx.font = `500 11.5px ${FONT_FAMILY}`;
+          ctx.fillStyle = '#64748b';
+          ctx.fillText('สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย', W / 2, ppY);
+
+          curY += ppBoxH + 12;
+        }
+
+        // 7. Bottom Watermark Credit
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.font = `500 11.5px ${FONT_FAMILY}`;
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('สร้างโดย GeeBaht (กี่บาท) • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22);
+
+        return canvas;
+      }
+
+      async function exportSlipImage() {
+        const saveBtn = $('btn-save-slip');
+        const originalText = saveBtn ? saveBtn.innerHTML : '';
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = '<span>⏳ กำลังสร้างรูปสลิปความละเอียดสูง...</span>';
+        }
+
+        try {
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+
+          // Allow QRCode DOM canvas/img to finish painting if needed
+          await new Promise((resolve) => setTimeout(resolve, 60));
+
+          const canvas = renderSlipToNativeCanvas();
+          const dataUrl = canvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          const restSlug = appState.restaurant || 'sushi';
+          const now = new Date();
+          const pad2 = (n) => String(n).padStart(2, '0');
+          const dateSlug = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+          const timeSlug = `${pad2(now.getHours())}-${pad2(now.getMinutes())}-${pad2(now.getSeconds())}`;
+          link.download = `GeeBaht-Slip-${restSlug}-${dateSlug}_${timeSlug}.png`;
+          link.href = dataUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          showToast('📸 บันทึกรูปสลิปความละเอียดสูงเรียบร้อยแล้ว!');
+        } catch (err) {
+          console.error('Export slip error:', err);
+          showToast('⚠️ เกิดข้อผิดพลาดในการบันทึกรูป');
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+          }
+        }
+      }
+
+      // --- 12. EVENT LISTENERS INITIALIZATION ---
+      function attachEventListeners() {
+        // Screen 1: Restaurant selector
+        const selectRestaurant = $('select-restaurant');
+        if (selectRestaurant) {
+          selectRestaurant.addEventListener('change', (e) => {
+            applyRestaurantSelection(e.target.value);
+          });
+        }
+
+        // Custom restaurant inputs
+        const inputCustomPlates = $('input-custom-plates');
+        if (inputCustomPlates) {
+          inputCustomPlates.addEventListener('input', () => {
+            parseCustomPlatesInput();
+            renderSetupRestaurantUI();
+          });
+        }
+
+        const toggleCustomSC = $('toggle-custom-sc');
+        if (toggleCustomSC) {
+          toggleCustomSC.addEventListener('change', (e) => {
+            appState.taxSettings.isServiceCharge = e.target.checked;
+            saveState();
+            renderSetupRestaurantUI();
+          });
+        }
+
+        const toggleCustomVAT = $('toggle-custom-vat');
+        if (toggleCustomVAT) {
+          toggleCustomVAT.addEventListener('change', (e) => {
+            appState.taxSettings.isVat = e.target.checked;
+            saveState();
+            renderSetupRestaurantUI();
+          });
+        }
+
+        // Screen 1: Add Member button, Enter key & live input unlock
+        const inputMemberName = $('input-member-name');
+        const btnAddMember = $('btn-add-member');
+
+        if (inputMemberName) {
+          inputMemberName.addEventListener('input', () => {
+            const startBtn = $('btn-start-session');
+            const errorMsg = $('setup-error-msg');
+            const hasPending = String(inputMemberName.value || '').trim().length > 0;
+            if (startBtn) {
+              startBtn.disabled = appState.members.length < 1 && !hasPending;
+            }
+            if (errorMsg && (appState.members.length >= 1 || hasPending)) {
+              errorMsg.classList.add('hidden');
+            }
+          });
+
+          inputMemberName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addMemberByName(inputMemberName.value);
+            }
+          });
+        }
+
+        if (btnAddMember && inputMemberName) {
+          btnAddMember.addEventListener('click', () => {
+            addMemberByName(inputMemberName.value);
+          });
+        }
+
+        // Quick nickname buttons
+        document.querySelectorAll('.quick-name-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const qName = btn.getAttribute('data-quick-name');
+            addMemberByName(qName, true);
+          });
+        });
+
+        // Remove member delegation
+        const membersListContainer = $('members-list-container');
+        if (membersListContainer) {
+          membersListContainer.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('[data-remove-member]');
+            if (removeBtn) {
+              const id = removeBtn.getAttribute('data-remove-member');
+              removeMemberById(id);
+            }
+          });
+        }
+
+        // Active session banner buttons
+        const btnResumeSession = $('btn-resume-session');
+        if (btnResumeSession) {
+          btnResumeSession.addEventListener('click', () => {
+            if (appState.members.length < 1) {
+              showToast('⚠️ กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน');
+              return;
+            }
+            switchScreen('counter');
+          });
+        }
+
+        const btnNewTableBanner = $('btn-new-table-banner');
+        if (btnNewTableBanner) {
+          btnNewTableBanner.addEventListener('click', () => {
+            if (confirm('ยืนยันการเริ่มโต๊ะใหม่? ข้อมูลจานและรายชื่อของโต๊ะปัจจุบันจะถูกล้าง (แต่ยังจำเบอร์ PromptPay ไว้ให้)')) {
+              resetSessionKeepPromptPay();
+              renderSetupScreen();
+              showToast('✨ เริ่มตั้งค่าโต๊ะใหม่เรียบร้อย');
+            }
+          });
+        }
+
+        // Start session CTA (auto-adds pending text in inputMemberName if user didn't click "+ เพิ่ม")
+        const btnStartSession = $('btn-start-session');
+        if (btnStartSession) {
+          btnStartSession.addEventListener('click', () => {
+            if (inputMemberName && String(inputMemberName.value || '').trim().length > 0) {
+              addMemberByName(inputMemberName.value);
+            }
+            if (appState.members.length < 1) {
+              const errEl = $('setup-error-msg');
+              if (errEl) errEl.classList.remove('hidden');
+              return;
+            }
+            appState.isActiveSession = true;
+            ensureEntityRecords();
+            saveState();
+            switchScreen('counter');
+          });
+        }
+
+        // Screen 2: Member Tabs Carousel delegation
+        const memberTabsCarousel = $('member-tabs-carousel');
+        if (memberTabsCarousel) {
+          memberTabsCarousel.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('[data-tab-id]');
+            if (!tabBtn) return;
+            activeTabId = tabBtn.getAttribute('data-tab-id');
+            renderMemberTabsCarousel();
+            renderActiveTabStatusBar();
+            renderPlatesGrid();
+            renderSpecialItemsList();
+
+            // Smooth horizontal auto-scroll to clicked tab
+            const updatedBtn = memberTabsCarousel.querySelector(`[data-tab-id="${activeTabId}"]`);
+            if (updatedBtn && typeof updatedBtn.scrollIntoView === 'function') {
+              updatedBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+          });
+        }
+
+        // Screen 2: Plates Grid delegation (+1 on card tap, -1 on sub-button tap)
+        const platesGrid = $('plates-grid');
+        if (platesGrid) {
+          platesGrid.addEventListener('click', (e) => {
+            const decBtn = e.target.closest('[data-plate-dec]');
+            if (decBtn) {
+              e.stopPropagation();
+              const price = Number(decBtn.getAttribute('data-plate-dec'));
+              if (price > 0) updatePlateCount(price, -1);
+              return;
+            }
+
+            const plateCard = e.target.closest('[data-plate-card]');
+            if (plateCard) {
+              const price = Number(plateCard.getAttribute('data-plate-card'));
+              if (price > 0) updatePlateCount(price, 1);
+            }
+          });
+        }
+
+        // Screen 2: Clear plates of currently selected tab/member ONLY
+        const btnClearActivePlates = $('btn-clear-active-plates');
+        if (btnClearActivePlates) {
+          btnClearActivePlates.addEventListener('click', () => {
+            clearActiveTabPlates();
+          });
+        }
+
+        // Screen 2: Preset Special Items
+        document.querySelectorAll('.preset-item-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const name = btn.getAttribute('data-preset-name');
+            const price = Number(btn.getAttribute('data-preset-price'));
+            if (addSpecialItem(name, price)) {
+              showToast(`+ เพิ่ม "${name}" (฿${price}) แล้ว`);
+            }
+          });
+        });
+
+        // Screen 2: Custom Special Item Form
+        const btnAddSpecial = $('btn-add-special');
+        const inputSpecialName = $('input-special-name');
+        const inputSpecialPrice = $('input-special-price');
+
+        const handleAddCustomSpecial = () => {
+          if (!inputSpecialName || !inputSpecialPrice) return;
+          if (addSpecialItem(inputSpecialName.value, inputSpecialPrice.value)) {
+            inputSpecialName.value = '';
+            inputSpecialPrice.value = '';
+            inputSpecialName.focus();
+          }
+        };
+
+        if (btnAddSpecial) {
+          btnAddSpecial.addEventListener('click', handleAddCustomSpecial);
+        }
+        if (inputSpecialPrice) {
+          inputSpecialPrice.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddCustomSpecial();
+            }
+          });
+        }
+
+        // Screen 2: Remove Special Item delegation
+        const specialItemsList = $('special-items-list');
+        if (specialItemsList) {
+          specialItemsList.addEventListener('click', (e) => {
+            const rmBtn = e.target.closest('[data-remove-special]');
+            if (rmBtn) {
+              removeSpecialItem(rmBtn.getAttribute('data-remove-special'));
+            }
+          });
+        }
+
+        // Screen 3: Global Discount Bar (Fixed THB vs Percent % + Equal vs Proportional Split)
+        const btnDiscFixed = $('btn-disc-type-fixed');
+        const btnDiscPercent = $('btn-disc-type-percent');
+        const btnDiscSplitEqual = $('btn-disc-split-equal');
+        const btnDiscSplitProp = $('btn-disc-split-proportional');
+        const inputDiscVal = $('input-discount-value');
+
+        if (btnDiscFixed) {
+          btnDiscFixed.addEventListener('click', () => {
+            appState.discount.type = 'fixed';
+            saveState();
+            renderCheckoutScreen();
+          });
+        }
+
+        if (btnDiscPercent) {
+          btnDiscPercent.addEventListener('click', () => {
+            appState.discount.type = 'percent';
+            saveState();
+            renderCheckoutScreen();
+          });
+        }
+
+        if (btnDiscSplitEqual) {
+          btnDiscSplitEqual.addEventListener('click', () => {
+            appState.discount.splitMode = 'equal';
+            saveState();
+            renderCheckoutScreen();
+          });
+        }
+
+        if (btnDiscSplitProp) {
+          btnDiscSplitProp.addEventListener('click', () => {
+            appState.discount.splitMode = 'proportional';
+            saveState();
+            renderCheckoutScreen();
+          });
+        }
+
+        if (inputDiscVal) {
+          inputDiscVal.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            appState.discount.value = (!isNaN(val) && val >= 0) ? val : 0;
+            saveState();
+            renderCheckoutScreen();
+          });
+        }
+
+        // Screen 2 Navigation: Back to Setup & Go to Checkout (top & bottom buttons)
+        const btnBackToSetup = $('btn-back-to-setup');
+        if (btnBackToSetup) {
+          btnBackToSetup.addEventListener('click', () => {
+            switchScreen('setup');
+          });
+        }
+
+        const btnGoCheckout = $('btn-go-checkout');
+        if (btnGoCheckout) {
+          btnGoCheckout.addEventListener('click', () => {
+            switchScreen('checkout');
+          });
+        }
+
+        const btnGoCheckoutBottom = $('btn-go-checkout-bottom');
+        if (btnGoCheckoutBottom) {
+          btnGoCheckoutBottom.addEventListener('click', () => {
+            switchScreen('checkout');
+          });
+        }
+
+        // Screen 3: Back to Counter
+        const btnBackToCounter = $('btn-back-to-counter');
+        if (btnBackToCounter) {
+          btnBackToCounter.addEventListener('click', () => {
+            switchScreen('counter');
+          });
+        }
+
+        // Screen 3: Smart Collapsible PromptPay Card Toggle & Clear Button
+        const btnTogglePPCard = $('btn-toggle-pp-card');
+        const btnDonePPCard = $('btn-done-pp-card');
+        const btnClearPPData = $('btn-clear-pp-data');
+
+        if (btnTogglePPCard) {
+          btnTogglePPCard.addEventListener('click', () => {
+            isPromptPayCardExpanded = !isPromptPayCardExpanded;
+            renderPromptPayCardState();
+          });
+        }
+
+        if (btnDonePPCard) {
+          btnDonePPCard.addEventListener('click', () => {
+            isPromptPayCardExpanded = false;
+            renderPromptPayCardState();
+          });
+        }
+
+        if (btnClearPPData) {
+          btnClearPPData.addEventListener('click', () => {
+            if (!appState.promptPay.id && !appState.promptPay.name) return;
+            if (confirm('ยืนยันการล้างข้อมูลเบอร์ PromptPay และชื่อบัญชีออกจากเครื่องนี้?')) {
+              appState.promptPay.id = '';
+              appState.promptPay.name = '';
+              saveState();
+              const ppIdEl = $('input-promptpay-id');
+              const ppNameEl = $('input-promptpay-name');
+              if (ppIdEl) ppIdEl.value = '';
+              if (ppNameEl) ppNameEl.value = '';
+              renderPromptPayCardState();
+              renderMainPromptPayQR();
+              showToast('🗑️ ล้างข้อมูล PromptPay ออกจากเครื่องเรียบร้อยแล้ว');
+            }
+          });
+        }
+
+        // Screen 3: PromptPay Payer Inputs (with automatic masking on blur & toggle button)
+        const inputPPId = $('input-promptpay-id');
+        const inputPPName = $('input-promptpay-name');
+        const btnTogglePPVis = $('btn-toggle-pp-visibility');
+
+        if (inputPPId) {
+          inputPPId.addEventListener('focus', () => {
+            inputPPId.value = appState.promptPay.id || '';
+          });
+
+          inputPPId.addEventListener('blur', () => {
+            syncPromptPayInputDisplay();
+          });
+
+          inputPPId.addEventListener('input', (e) => {
+            appState.promptPay.id = e.target.value.trim();
+            saveState();
+            renderPromptPayCardState();
+            renderMainPromptPayQR();
+          });
+        }
+
+        if (btnTogglePPVis) {
+          btnTogglePPVis.addEventListener('click', () => {
+            isPromptPayInputMasked = !isPromptPayInputMasked;
+            syncPromptPayInputDisplay();
+          });
+        }
+
+        if (inputPPName) {
+          inputPPName.addEventListener('input', (e) => {
+            appState.promptPay.name = e.target.value.trim();
+            saveState();
+            renderPromptPayCardState();
+            renderMainPromptPayQR();
+          });
+        }
+
+        // Screen 3: Individual Member Card Click -> Open QR Modal
+        const slipMembersBreakdown = $('slip-members-breakdown');
+        if (slipMembersBreakdown) {
+          slipMembersBreakdown.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-member-qr-card]');
+            if (card) {
+              openMemberQRModal(card.getAttribute('data-member-qr-card'));
+            }
+          });
+        }
+
+        // Modal Close handlers
+        const btnCloseModalTop = $('btn-close-qr-modal');
+        const btnCloseModalBottom = $('btn-close-qr-modal-bottom');
+        const modalOverlay = $('modal-member-qr');
+        const btnModalFocusPP = $('btn-modal-focus-pp');
+
+        if (btnCloseModalTop) btnCloseModalTop.addEventListener('click', closeMemberQRModal);
+        if (btnCloseModalBottom) btnCloseModalBottom.addEventListener('click', closeMemberQRModal);
+        if (modalOverlay) {
+          modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeMemberQRModal();
+          });
+        }
+        if (btnModalFocusPP) {
+          btnModalFocusPP.addEventListener('click', () => {
+            closeMemberQRModal();
+            isPromptPayCardExpanded = true;
+            renderPromptPayCardState();
+            const ppInput = $('input-promptpay-id');
+            if (ppInput) {
+              ppInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => ppInput.focus(), 250);
+            }
+          });
+        }
+
+        // Screen 3: Save Slip & Clear Table
+        const btnSaveSlip = $('btn-save-slip');
+        if (btnSaveSlip) {
+          btnSaveSlip.addEventListener('click', exportSlipImage);
+        }
+
+        const btnClearTable = $('btn-clear-table');
+        if (btnClearTable) {
+          btnClearTable.addEventListener('click', () => {
+            if (confirm('ยืนยันจบมื้ออาหารและล้างข้อมูลโต๊ะนี้?\n(ระบบจะยังคงจำเบอร์ PromptPay ของคุณไว้สำหรับมื้อถัดไป)')) {
+              resetSessionKeepPromptPay();
+              switchScreen('setup');
+              showToast('🎉 จบมื้ออาหารเรียบร้อย ขอบคุณที่ใช้ GeeBaht!');
+            }
+          });
+        }
+      }
+
+      // --- 13. APP BOOTSTRAP ---
+      function initApp() {
+        loadState();
+        attachEventListeners();
+
+        // Populate custom plates input if custom was saved
+        const customInput = $('input-custom-plates');
+        if (customInput && customPlatesList.length > 0) {
+          customInput.value = customPlatesList.join(', ');
+        }
+
+        // Always start on Setup screen (with Resume Banner if active session exists, per Screen 1 spec)
+        switchScreen('setup');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+      } else {
+        initApp();
+      }
+    })();
+  </script>
+</body>
+</html>
+
