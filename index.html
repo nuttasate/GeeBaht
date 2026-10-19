@@ -50,6 +50,12 @@
     input, textarea {
       user-select: text;
     }
+    #preview-slip-img {
+      -webkit-touch-callout: default !important;
+      -webkit-user-select: auto !important;
+      user-select: auto !important;
+      pointer-events: auto !important;
+    }
     body {
       font-family: 'Kanit', sans-serif;
       background-color: #f8fafc;
@@ -722,6 +728,32 @@
           ปิดหน้าต่างนี้
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMAGE PREVIEW FOR IOS / MOBILE (Tap & Hold to Save to Photos) -->
+  <div id="modal-image-preview" class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-between p-4 overflow-y-auto">
+    <div class="w-full max-w-sm flex items-center justify-between pb-3 text-white">
+      <div>
+        <h4 class="font-bold text-sm">บันทึกรูปสลิป</h4>
+        <p class="text-[11px] text-slate-300">แตะค้างที่รูป แล้วเลือก "บันทึกรูปภาพ" (Save Image)</p>
+      </div>
+      <button type="button" id="btn-close-preview-modal" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-base font-bold transition">
+        ✕
+      </button>
+    </div>
+    
+    <div class="w-full max-w-sm flex-1 flex items-center justify-center py-2 overflow-auto">
+      <img id="preview-slip-img" alt="GeeBaht Slip" class="w-full h-auto rounded-2xl shadow-2xl max-h-[75vh] object-contain select-auto" />
+    </div>
+
+    <div class="w-full max-w-sm pt-3 space-y-2">
+      <div id="ios-save-hint" class="bg-blue-600/90 text-white rounded-xl p-2.5 text-center text-xs font-medium">
+        💡 บนมือถือ: <strong>แตะค้างที่รูปภาพ</strong> ด้านบน แล้วเลือก <strong>"บันทึกรูปภาพ"</strong>
+      </div>
+      <button type="button" id="btn-close-preview-modal-bottom" class="w-full py-3 rounded-xl font-bold text-sm bg-white text-slate-800 hover:bg-slate-100 transition shadow">
+        เสร็จสิ้น
+      </button>
     </div>
   </div>
 
@@ -2719,6 +2751,45 @@
         return null;
       }
 
+      async function ensureFontsLoaded() {
+        if (document.fonts) {
+          try {
+            await Promise.all([
+              document.fonts.load('400 12px Kanit'),
+              document.fonts.load('500 12px Kanit'),
+              document.fonts.load('600 12px Kanit'),
+              document.fonts.load('600 13px Kanit'),
+              document.fonts.load('700 14px Kanit'),
+              document.fonts.load('700 16px Kanit'),
+              document.fonts.load('700 24px Kanit'),
+              document.fonts.load('800 18px Kanit'),
+              document.fonts.load('800 22px Kanit')
+            ]);
+            await document.fonts.ready;
+          } catch (e) {
+            console.warn('Font loading check caught:', e);
+          }
+        }
+      }
+
+      function openSlipPreviewModal(dataUrl) {
+        const modal = $('modal-image-preview');
+        const img = $('preview-slip-img');
+        if (img) img.src = dataUrl;
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.classList.add('overflow-hidden');
+        }
+      }
+
+      function closeSlipPreviewModal() {
+        const modal = $('modal-image-preview');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+        }
+      }
+
       function renderSlipToNativeCanvas() {
         const summary = calculateBillSummary();
         const isSC = Boolean(appState.taxSettings.isServiceCharge);
@@ -2733,11 +2804,11 @@
         const qrDrawable = ppPayload ? getRenderedQRDrawable() : null;
         const hasPPBox = Boolean(ppPayload && qrDrawable);
 
-        const W = 520;
-        const PAD = 28;
+        const W = 560;
+        const PAD = 32;
         const INNER_W = W - PAD * 2;
-        const SCALE = 3;
-        const FONT_FAMILY = "'Kanit', -apple-system, BlinkMacSystemFont, sans-serif";
+        const SCALE = 2;
+        const FONT_FAMILY = "'Kanit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
         // Measure pass on offscreen context to compute exact dynamic height
         const measureCanvas = document.createElement('canvas');
@@ -2763,10 +2834,12 @@
         let simBadgeX = PAD;
         let simBadgeRow = 0;
         const badgeH = 28;
+        const badgeGapX = 10;
+        const badgeRowH = 36;
         badgeTexts.forEach((bText, bIdx) => {
-          const textW = mCtx.measureText(bText).width;
-          const pillW = Math.ceil(textW + 22);
-          if (simBadgeX + pillW > W - PAD && simBadgeX > PAD) {
+          const textW = Math.ceil(mCtx.measureText(bText).width);
+          const pillW = Math.min(INNER_W, Math.ceil(textW + 24));
+          if (simBadgeX + pillW > PAD + INNER_W && simBadgeX > PAD) {
             simBadgeRow++;
             simBadgeX = PAD;
           }
@@ -2774,11 +2847,11 @@
             text: bText,
             isAmber: bIdx === 2,
             x: simBadgeX,
-            y: 100 + simBadgeRow * 34,
+            y: 106 + simBadgeRow * badgeRowH,
             w: pillW,
             h: badgeH
           });
-          simBadgeX += pillW + 8;
+          simBadgeX += pillW + badgeGapX;
         });
 
         // Calculate Table Summary rows
@@ -2793,7 +2866,7 @@
         ];
         if (summary.sharedTotalRaw > 0) {
           tableRows.push({
-            label: '↳ แบ่งเป็นกองกลาง',
+            label: 'แบ่งเป็นกองกลาง',
             value: `${formatCurrency(summary.sharedTotalRaw)} (คนละ ${formatCurrency(summary.perPersonShared)})`,
             labelColor: '#64748b',
             valueColor: '#334155',
@@ -2829,21 +2902,21 @@
         // Pre-calculate member card layouts
         mCtx.font = `700 16px ${FONT_FAMILY}`;
         const memberLayouts = summary.memberBreakdowns.map((mb, idx) => {
-          const nameMaxW = INNER_W - 36 - 34 - 145;
+          const nameMaxW = INNER_W - 36 - 34 - 150;
           const nameLines = wrapCanvasText(mCtx, mb.name, nameMaxW);
-          const headerH = Math.max(40, nameLines.length * 22 + 12);
+          const memberHeaderH = Math.max(42, nameLines.length * 22 + 14);
 
           const itemCountDesc = `${mb.platesCount} จาน${mb.specialsCount > 0 ? ` + ${mb.specialsCount} เมนูพิเศษ` : ''}`;
           const rows = [
             {
-              label: `🍣 กินของตัวเอง (${itemCountDesc})`,
+              label: `กินของตัวเอง (${itemCountDesc})`,
               value: formatCurrency(mb.personalRaw),
               labelColor: '#475569',
               valueColor: '#1e293b',
               bold: true
             },
             {
-              label: '🥢 หารกองกลาง',
+              label: 'หารกองกลาง',
               value: formatCurrency(mb.sharedShare),
               labelColor: '#475569',
               valueColor: '#1e293b',
@@ -2853,7 +2926,7 @@
 
           if (mb.discount > 0) {
             rows.push({
-              label: `🏷️ ${mb.discountLabel || 'ส่วนลดท้ายบิล'}`,
+              label: `${mb.discountLabel || 'ส่วนลดท้ายบิล'}`,
               value: `-${formatCurrency(mb.discount)}`,
               labelColor: '#e11d48',
               valueColor: '#e11d48',
@@ -2862,7 +2935,7 @@
           }
           if (isSC) {
             rows.push({
-              label: '➕ Service Charge (10%)',
+              label: '+ Service Charge (10%)',
               value: formatCurrency(mb.scAmount),
               labelColor: '#64748b',
               valueColor: '#334155',
@@ -2871,7 +2944,7 @@
           }
           if (isVAT) {
             rows.push({
-              label: '➕ VAT (7%)',
+              label: '+ VAT (7%)',
               value: formatCurrency(mb.vatAmount),
               labelColor: '#64748b',
               valueColor: '#334155',
@@ -2879,7 +2952,7 @@
             });
           } else {
             rows.push({
-              label: 'ℹ️ VAT (7%)',
+              label: 'VAT (7%)',
               value: 'รวมในราคาอาหารแล้ว',
               labelColor: '#94a3b8',
               valueColor: '#64748b',
@@ -2887,27 +2960,25 @@
             });
           }
 
-          const cardH = 16 + headerH + 10 + rows.length * 26 + 14;
-          return { mb, idx, nameLines, headerH, rows, cardH };
+          const cardH = 16 + memberHeaderH + 12 + rows.length * 26 + 14;
+          return { mb, idx, nameLines, memberHeaderH, rows, cardH };
         });
 
         // Compute Header height dynamically based on badge rows
-        const headerH = 152 + simBadgeRow * 34;
+        const headerH = 106 + (simBadgeRow + 1) * badgeRowH + 16;
 
         // Compute Table Summary Card height
-        const tableSummaryBoxH = 18 + tableRows.length * 30 + 14 + 58 + 16;
+        const netBoxH = 56;
+        const tableSummaryBoxH = 18 + tableRows.length * 30 + 12 + netBoxH + 16;
 
         // Compute Members Section height
         const membersHeaderH = 34;
         const membersTotalCardsH = memberLayouts.reduce((acc, item) => acc + item.cardH + 12, 0);
 
         // Compute PromptPay Footer Box height
-        let ppBoxH = 0;
-        if (hasPPBox) {
-          ppBoxH = 22 + 30 + 28 + 24 + 206 + 28 + 18;
-        }
+        const ppBoxH = 364;
 
-        const footerCreditH = 44;
+        const footerCreditH = 46;
         const totalH = headerH + 24 + tableSummaryBoxH + 22 + membersHeaderH + membersTotalCardsH + (hasPPBox ? ppBoxH + 16 : 0) + footerCreditH;
 
         // Create High-DPI Canvas
@@ -2939,7 +3010,7 @@
         ctx.font = `700 13px ${FONT_FAMILY}`;
         ctx.fillStyle = '#fb7185';
         ctx.textAlign = 'left';
-        ctx.fillText('🍣 GeeBaht (กี่บาท)', PAD, 30);
+        ctx.fillText('GeeBaht (กี่บาท)', PAD, 30);
 
         ctx.font = `500 12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
@@ -2954,7 +3025,7 @@
         ctx.textAlign = 'left';
         ctx.font = `700 24px ${FONT_FAMILY}`;
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(restName, PAD, 66);
+        ctx.fillText(restName, PAD, 70);
 
         // Header Badges Row (Centered inside pill boxes with textBaseline = 'middle', multi-line safe)
         ctx.font = `600 12px ${FONT_FAMILY}`;
@@ -2977,28 +3048,27 @@
         });
 
         // 3. Table Financial Summary Box
-        let curY = headerH + 22;
+        let curY = headerH + 24;
         fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, tableSummaryBoxH, 18, '#f8fafc', '#e2e8f0', 1.5);
 
         let rowY = curY + 18;
         tableRows.forEach((r) => {
-          const rowCenterY = rowY + 15;
+          const rowCenterY = rowY + 14;
           ctx.textBaseline = 'middle';
           ctx.textAlign = 'left';
           ctx.font = `${r.bold ? '600' : '500'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.labelColor;
-          ctx.fillText(r.label, PAD + 16, rowCenterY);
+          ctx.fillText(r.label, PAD + 18, rowCenterY);
 
           ctx.textAlign = 'right';
           ctx.font = `${r.bold ? '700' : '600'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.valueColor;
-          ctx.fillText(r.value, PAD + INNER_W - 16, rowCenterY);
+          ctx.fillText(r.value, PAD + INNER_W - 18, rowCenterY);
           rowY += 30;
         });
 
         // Net Total Highlight Bar inside Table Summary Box
-        const netBoxY = rowY + 8;
-        const netBoxH = 54;
+        const netBoxY = rowY + 10;
         fillAndStrokeRoundRect(ctx, PAD + 12, netBoxY, INNER_W - 24, netBoxH, 14, '#ecfdf5', '#a7f3d0', 1.5);
 
         ctx.textBaseline = 'middle';
@@ -3019,7 +3089,7 @@
         ctx.textAlign = 'left';
         ctx.font = `700 15px ${FONT_FAMILY}`;
         ctx.fillStyle = '#1e293b';
-        ctx.fillText('👥 ยอดที่แต่ละคนต้องจ่าย', PAD, curY + 12);
+        ctx.fillText('ยอดที่แต่ละคนต้องจ่าย', PAD, curY + 12);
 
         ctx.textAlign = 'right';
         ctx.font = `600 11.5px ${FONT_FAMILY}`;
@@ -3030,14 +3100,14 @@
 
         // 5. Render Each Member Breakdown Card
         memberLayouts.forEach((item) => {
-          const { mb, idx, nameLines, headerH: mHeaderH, rows, cardH } = item;
+          const { mb, idx, nameLines, memberHeaderH, rows, cardH } = item;
           const isZeroNet = mb.netAmount <= 0;
 
           fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, cardH, 16, '#f8fafc', '#e2e8f0', 1.2);
 
           // Number Circle Badge
           const circleR = 12;
-          const circleCX = PAD + 16 + circleR;
+          const circleCX = PAD + 18 + circleR;
           const circleCY = curY + 16 + 18;
           ctx.beginPath();
           ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
@@ -3066,17 +3136,17 @@
           ctx.textAlign = 'right';
           ctx.font = `500 11px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 16, curY + 16 + 8);
+          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 18, curY + 16 + 8);
 
           ctx.font = `800 18px ${FONT_FAMILY}`;
           ctx.fillStyle = isZeroNet ? '#94a3b8' : '#047857';
-          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 16, curY + 16 + 28);
+          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 18, curY + 16 + 28);
 
           // Divider Line
-          const divY = curY + 16 + mHeaderH;
+          const divY = curY + 16 + memberHeaderH;
           ctx.beginPath();
-          ctx.moveTo(PAD + 16, divY);
-          ctx.lineTo(PAD + INNER_W - 16, divY);
+          ctx.moveTo(PAD + 18, divY);
+          ctx.lineTo(PAD + INNER_W - 18, divY);
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -3089,12 +3159,12 @@
             ctx.textAlign = 'left';
             ctx.font = `${r.bold ? '500' : '400'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.labelColor;
-            ctx.fillText(r.label, PAD + 16, centerY);
+            ctx.fillText(r.label, PAD + 18, centerY);
 
             ctx.textAlign = 'right';
             ctx.font = `${r.bold ? '700' : '600'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.valueColor;
-            ctx.fillText(r.value, PAD + INNER_W - 16, centerY);
+            ctx.fillText(r.value, PAD + INNER_W - 18, centerY);
             mRowY += 26;
           });
 
@@ -3103,14 +3173,14 @@
 
         // 6. PromptPay QR Box at Bottom of Slip (Rendered only when valid PromptPay QR exists)
         if (hasPPBox) {
-          curY += 4;
+          curY += 6;
           fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, ppBoxH, 18, '#eff6ff', '#bfdbfe', 1.5);
 
-          let ppY = curY + 20;
+          let ppY = curY + 22;
 
-          const ppBadgeText = '📲 สแกน PromptPay เพื่อโอนเงิน';
+          const ppBadgeText = 'สแกน PromptPay เพื่อโอนเงิน';
           ctx.font = `700 12px ${FONT_FAMILY}`;
-          const ppBadgeW = Math.ceil(ctx.measureText(ppBadgeText).width + 28);
+          const ppBadgeW = Math.min(INNER_W - 32, Math.ceil(ctx.measureText(ppBadgeText).width + 32));
           const ppBadgeH = 28;
           fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, '#1d4ed8', null, 0);
           ctx.textBaseline = 'middle';
@@ -3153,7 +3223,7 @@
           ctx.fillStyle = '#64748b';
           ctx.fillText('สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย', W / 2, ppY);
 
-          curY += ppBoxH + 12;
+          curY += ppBoxH + 16;
         }
 
         // 7. Bottom Watermark Credit
@@ -3166,6 +3236,33 @@
         return canvas;
       }
 
+      function triggerBlobDownload(blob, filename, fallbackDataUrl) {
+        try {
+          if (blob && window.URL && typeof window.URL.createObjectURL === 'function') {
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+            return;
+          }
+        } catch (e) {
+          console.warn('Blob URL download failed, fallback to DataURL:', e);
+        }
+
+        if (fallbackDataUrl) {
+          const link = document.createElement('a');
+          link.download = filename;
+          link.href = fallbackDataUrl;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+
       async function exportSlipImage() {
         const saveBtn = $('btn-save-slip');
         const originalText = saveBtn ? saveBtn.innerHTML : '';
@@ -3175,28 +3272,97 @@
         }
 
         try {
-          if (document.fonts && document.fonts.ready) {
-            await document.fonts.ready;
-          }
+          await ensureFontsLoaded();
 
           // Allow QRCode DOM canvas/img to finish painting if needed
-          await new Promise((resolve) => setTimeout(resolve, 60));
+          await new Promise((resolve) => setTimeout(resolve, 80));
 
           const canvas = renderSlipToNativeCanvas();
-          const dataUrl = canvas.toDataURL('image/png');
-          const link = document.createElement('a');
           const restSlug = appState.restaurant || 'sushi';
           const now = new Date();
           const pad2 = (n) => String(n).padStart(2, '0');
           const dateSlug = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
           const timeSlug = `${pad2(now.getHours())}-${pad2(now.getMinutes())}-${pad2(now.getSeconds())}`;
-          link.download = `GeeBaht-Slip-${restSlug}-${dateSlug}_${timeSlug}.png`;
-          link.href = dataUrl;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          const filename = `GeeBaht-Slip-${restSlug}-${dateSlug}_${timeSlug}.png`;
 
-          showToast('📸 บันทึกรูปสลิปความละเอียดสูงเรียบร้อยแล้ว!');
+          // Generate high-quality Blob
+          const blob = await new Promise((resolve) => {
+            if (typeof canvas.toBlob === 'function') {
+              canvas.toBlob(resolve, 'image/png');
+            } else {
+              const dataUrl = canvas.toDataURL('image/png');
+              const bytes = atob(dataUrl.split(',')[1]);
+              const arr = new Uint8Array(bytes.length);
+              for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+              resolve(new Blob([arr], { type: 'image/png' }));
+            }
+          });
+
+          const dataUrl = canvas.toDataURL('image/png');
+
+          // Precise Device & Platform Detection
+          // Note: iPadOS Safari reports navigator.platform === 'MacIntel' with maxTouchPoints > 1
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+          const isAndroid = /Android/i.test(navigator.userAgent);
+          const isDesktop = !isIOS && !isAndroid;
+
+          // 1. MACBOOK / DESKTOP: Download directly into the user's Downloads folder
+          if (isDesktop) {
+            triggerBlobDownload(blob, filename, dataUrl);
+            showToast('📥 บันทึกรูปสลิปลงโฟลเดอร์ Downloads เรียบร้อยแล้ว!');
+            return;
+          }
+
+          // 2. ANDROID: Download Blob to storage; Android MediaStore automatically adds it to Photo Gallery / Google Photos
+          if (isAndroid) {
+            triggerBlobDownload(blob, filename, dataUrl);
+            showToast('📸 บันทึกรูปสลิปลงแอปรูปภาพ (Gallery) เรียบร้อยแล้ว!');
+
+            // If running inside in-app browser (e.g. LINE / Facebook in-app browser where file downloads might be blocked)
+            const isInAppBrowser = /Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+            if (isInAppBrowser) {
+              openSlipPreviewModal(dataUrl);
+            }
+            return;
+          }
+
+          // 3. iOS (iPhone / iPad): Use Web Share API for native "Save Image" to Apple Photos, or fallback preview modal
+          if (isIOS) {
+            let sharedToIOSPhotos = false;
+            if (navigator.share && navigator.canShare && blob) {
+              try {
+                const file = new File([blob], filename, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                  await navigator.share({
+                    files: [file],
+                    title: 'GeeBaht Slip',
+                    text: `ใบสรุปยอดหารค่าซูชิ ${getActiveRestaurantName()} จาก GeeBaht`
+                  });
+                  sharedToIOSPhotos = true;
+                  showToast('📸 บันทึก / แชร์รูปสลิปเรียบร้อยแล้ว!');
+                  return;
+                }
+              } catch (shareErr) {
+                if (shareErr.name === 'AbortError') {
+                  // User dismissed iOS share sheet; open preview modal so they can tap & hold to save
+                  openSlipPreviewModal(dataUrl);
+                  return;
+                }
+                console.warn('iOS Web Share error:', shareErr);
+              }
+            }
+
+            if (!sharedToIOSPhotos) {
+              openSlipPreviewModal(dataUrl);
+              showToast('💡 แตะค้างที่รูปภาพเพื่อบันทึกลงแอปรูปภาพ (Photos)');
+            }
+            return;
+          }
+
+          // Universal fallback
+          triggerBlobDownload(blob, filename, dataUrl);
+          showToast('📸 บันทึกรูปสลิปเรียบร้อยแล้ว!');
         } catch (err) {
           console.error('Export slip error:', err);
           showToast('⚠️ เกิดข้อผิดพลาดในการบันทึกรูป');
@@ -3628,6 +3794,19 @@
         const btnSaveSlip = $('btn-save-slip');
         if (btnSaveSlip) {
           btnSaveSlip.addEventListener('click', exportSlipImage);
+        }
+
+        // Modal Preview Image Handlers (for iOS Save to Photos)
+        const btnClosePreviewTop = $('btn-close-preview-modal');
+        const btnClosePreviewBottom = $('btn-close-preview-modal-bottom');
+        const modalPreviewOverlay = $('modal-image-preview');
+
+        if (btnClosePreviewTop) btnClosePreviewTop.addEventListener('click', closeSlipPreviewModal);
+        if (btnClosePreviewBottom) btnClosePreviewBottom.addEventListener('click', closeSlipPreviewModal);
+        if (modalPreviewOverlay) {
+          modalPreviewOverlay.addEventListener('click', (e) => {
+            if (e.target === modalPreviewOverlay) closeSlipPreviewModal();
+          });
         }
 
         const btnClearTable = $('btn-clear-table');
