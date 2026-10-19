@@ -48,12 +48,23 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
+    html, body {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      overflow-anchor: none;
+    }
     * {
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
       user-select: none;
     }
+    button, [role="button"], .plate-ring, label, a {
+      touch-action: manipulation;
+    }
     input, textarea {
+      -webkit-user-select: text;
       user-select: text;
+      touch-action: manipulation;
     }
     #preview-slip-img {
       -webkit-touch-callout: default !important;
@@ -80,6 +91,7 @@
     .plate-ring {
       position: relative;
       overflow: hidden;
+      touch-action: manipulation;
       transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
     }
     .plate-ring::before {
@@ -119,7 +131,7 @@
 <body class="text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Main Mobile Container -->
-  <div id="app-shell" class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col relative overflow-x-hidden border-x border-slate-100">
+  <div id="app-shell" class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col relative border-x border-slate-100">
 
     <!-- Top Brand Header (Visible on Setup & Checkout) -->
     <header id="main-header" class="bg-gradient-to-r from-brand-600 via-rose-600 to-orange-500 text-white px-5 pt-5 pb-4 shadow-md relative overflow-hidden">
@@ -138,7 +150,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.0.2
+          v1.0.3
         </span>
       </div>
     </header>
@@ -1935,10 +1947,24 @@
             <button type="button" data-tab-id="${escapeHtml(tab.id)}"
               class="member-tab-btn shrink-0 px-3.5 py-2 rounded-xl border text-xs flex items-center gap-2 transition active:scale-95 ${activeClasses}">
               <span class="truncate max-w-[110px]">${escapeHtml(tab.name)}</span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full font-bold ${badgeClasses}">${itemCount}</span>
+              <span data-tab-badge="${escapeHtml(tab.id)}" class="text-[10px] px-1.5 py-0.5 rounded-full font-bold ${badgeClasses}">${itemCount}</span>
             </button>
           `;
         }).join('');
+      }
+
+      function updateActiveTabCarouselBadgeInPlace() {
+        const carousel = $('member-tabs-carousel');
+        if (!carousel) return;
+        const badgeEl = carousel.querySelector(`[data-tab-badge="${activeTabId}"]`);
+        if (!badgeEl) {
+          renderMemberTabsCarousel();
+          return;
+        }
+        const st = getEntityRawSubtotal(activeTabId);
+        const itemCount = st.platesCount + st.specialsCount;
+        badgeEl.className = 'text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-white/25 text-white';
+        badgeEl.textContent = String(itemCount);
       }
 
       function renderActiveTabStatusBar() {
@@ -1998,7 +2024,7 @@
           const incHintClass = theme.incHint || 'bg-black/15 text-white';
 
           return `
-            <div data-plate-card="${price}" role="button" tabindex="0"
+            <div data-plate-card="${price}" role="button"
               class="plate-ring ${theme.bg} rounded-3xl p-4 shadow-md border-2 ${theme.border} flex flex-col justify-between min-h-[132px] cursor-pointer select-none relative">
               
               <!-- Top row: Plate label & Count Badge -->
@@ -2012,19 +2038,17 @@
               <!-- Center: Large Price Display -->
               <div class="my-2 text-center z-10">
                 <span class="text-3xl font-extrabold tracking-tight">฿${price}</span>
-                <span class="block text-[11px] opacity-85 font-medium mt-0.5">
+                <span id="plate-subtext-${price}" class="block text-[11px] opacity-85 font-medium mt-0.5">
                   ${count > 0 ? `รวม ฿${subtotalForPlate.toLocaleString()}` : 'แตะเพื่อ +1 จาน'}
                 </span>
               </div>
 
-              <!-- Bottom row: Decrement (-) Sub-button (Visible only if count > 0 per spec) -->
+              <!-- Bottom row: Decrement (-) Sub-button (Always in DOM for zero layout shift; hidden via invisible when count === 0) -->
               <div class="flex items-center justify-between min-h-[28px] z-10">
-                ${count > 0 ? `
-                  <button type="button" data-plate-dec="${price}"
-                    class="${decBtnClass} active:scale-90 font-bold px-3 py-1 rounded-xl text-xs backdrop-blur-sm border transition flex items-center gap-1 shadow-sm">
-                    <span>− ลด 1</span>
-                  </button>
-                ` : `<span></span>`}
+                <button type="button" id="plate-dec-btn-${price}" data-plate-dec="${price}"
+                  class="${decBtnClass} ${count > 0 ? '' : 'invisible pointer-events-none'} active:scale-90 font-bold px-3 py-1 rounded-xl text-xs backdrop-blur-sm border transition flex items-center gap-1 shadow-sm">
+                  <span>− ลด 1</span>
+                </button>
                 <span class="text-xs font-bold opacity-85 ${incHintClass} px-2 py-0.5 rounded-lg">+ เพิ่ม</span>
               </div>
             </div>
@@ -2171,16 +2195,28 @@
         saveState();
         const summary = calculateBillSummary();
         renderCounterTopBar(summary);
-        renderMemberTabsCarousel();
+        updateActiveTabCarouselBadgeInPlace();
         renderActiveTabStatusBar();
-        renderPlatesGrid();
 
-        // Bounce badge animation
+        // Update only the tapped plate card in-place so the DOM node is never destroyed mid-tap
         const badge = $(`plate-badge-${price}`);
-        if (badge) {
+        const subtext = $(`plate-subtext-${price}`);
+        const decBtn = $(`plate-dec-btn-${price}`);
+        const theme = getPlateTheme(price);
+        const subtotalForPlate = price * next;
+        const decBtnClass = theme.decBtn || 'bg-black/35 hover:bg-black/50 text-white border-white/25';
+
+        if (badge && subtext && decBtn) {
+          badge.className = `px-2.5 py-0.5 rounded-full text-xs font-extrabold shadow-sm ${theme.badge} ${next > 0 ? '' : 'opacity-60'}`;
+          badge.textContent = `x${next}`;
+          subtext.textContent = next > 0 ? `รวม ฿${subtotalForPlate.toLocaleString()}` : 'แตะเพื่อ +1 จาน';
+          decBtn.className = `${decBtnClass} ${next > 0 ? '' : 'invisible pointer-events-none'} active:scale-90 font-bold px-3 py-1 rounded-xl text-xs backdrop-blur-sm border transition flex items-center gap-1 shadow-sm`;
+
           badge.classList.remove('badge-bounce');
           void badge.offsetWidth;
           badge.classList.add('badge-bounce');
+        } else {
+          renderPlatesGrid();
         }
       }
 
@@ -2202,7 +2238,7 @@
 
         const summary = calculateBillSummary();
         renderCounterTopBar(summary);
-        renderMemberTabsCarousel();
+        updateActiveTabCarouselBadgeInPlace();
         renderActiveTabStatusBar();
         renderPlatesGrid();
         showToast(`🗑️ ล้างจานของ "${targetName}" เรียบร้อยแล้ว`);
@@ -2231,7 +2267,7 @@
         saveState();
         const summary = calculateBillSummary();
         renderCounterTopBar(summary);
-        renderMemberTabsCarousel();
+        updateActiveTabCarouselBadgeInPlace();
         renderActiveTabStatusBar();
         renderSpecialItemsList();
         return true;
@@ -2245,7 +2281,7 @@
 
         const summary = calculateBillSummary();
         renderCounterTopBar(summary);
-        renderMemberTabsCarousel();
+        updateActiveTabCarouselBadgeInPlace();
         renderActiveTabStatusBar();
         renderSpecialItemsList();
       }
@@ -2761,23 +2797,42 @@
       async function ensureFontsLoaded() {
         if (document.fonts) {
           try {
+            const sampleThaiAndLatin = 'กขคงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ฿0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
             await Promise.all([
-              document.fonts.load('12px Kanit'),
-              document.fonts.load('bold 12px Kanit'),
-              document.fonts.load('13px Kanit'),
-              document.fonts.load('bold 13px Kanit'),
-              document.fonts.load('14px Kanit'),
-              document.fonts.load('bold 14px Kanit'),
-              document.fonts.load('16px Kanit'),
-              document.fonts.load('bold 16px Kanit'),
-              document.fonts.load('bold 24px Kanit'),
-              document.fonts.load('800 22px Kanit')
+              document.fonts.load('400 12px Kanit', sampleThaiAndLatin),
+              document.fonts.load('500 12px Kanit', sampleThaiAndLatin),
+              document.fonts.load('600 12px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 13px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 15px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 16px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 18px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 22px Kanit', sampleThaiAndLatin),
+              document.fonts.load('700 24px Kanit', sampleThaiAndLatin)
             ]);
             await document.fonts.ready;
           } catch (e) {
             console.warn('Font loading check caught:', e);
           }
         }
+      }
+
+      // iOS WebKit (Safari & Chrome on iPhone) Canvas 2D Fix:
+      // WebKit's CoreText complex-script path ignores ctx.textAlign = 'center' | 'right' whenever
+      // a string contains Thai Unicode characters (U+0E00-U+0E7F, including ฿ U+0E3F), drawing the
+      // string starting at x (left-aligned) instead of offsetting by width/2 or width.
+      // By always setting ctx.textAlign = 'left' and computing drawX from ctx.measureText(str).width,
+      // alignment is 100% deterministic across iOS Safari, iOS Chrome, Android, and Desktop.
+      function drawCanvasText(ctx, text, x, y, align = 'left') {
+        const str = String(text ?? '');
+        if (!str) return;
+        ctx.textAlign = 'left';
+        ctx.direction = 'ltr';
+        let drawX = x;
+        if (align === 'center' || align === 'right') {
+          const w = ctx.measureText(str).width;
+          drawX = align === 'center' ? x - w / 2 : x - w;
+        }
+        ctx.fillText(str, drawX, y);
       }
 
       function openSlipPreviewModal(dataUrl) {
@@ -3032,23 +3087,20 @@
         ctx.textBaseline = 'middle';
         ctx.font = `700 13px ${FONT_FAMILY}`;
         ctx.fillStyle = '#fb7185';
-        ctx.textAlign = 'left';
-        ctx.fillText('GeeBaht (กี่บาท)', PAD, 30);
+        drawCanvasText(ctx, 'GeeBaht (กี่บาท)', PAD, 30, 'left');
 
         ctx.font = `500 12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        ctx.textAlign = 'right';
-        ctx.fillText('ใบสรุปยอดหารค่าซูชิ', W - PAD, 28);
+        drawCanvasText(ctx, 'ใบสรุปยอดหารค่าซูชิ', W - PAD, 28, 'right');
 
         ctx.font = `500 12px ${FONT_FAMILY}`;
         ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(dateTimeStr, W - PAD, 48);
+        drawCanvasText(ctx, dateTimeStr, W - PAD, 48, 'right');
 
         // Restaurant Name
-        ctx.textAlign = 'left';
         ctx.font = `700 24px ${FONT_FAMILY}`;
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(restName, PAD, 70);
+        drawCanvasText(ctx, restName, PAD, 70, 'left');
 
         // Header Badges Row
         ctx.font = `600 12px ${FONT_FAMILY}`;
@@ -3065,9 +3117,8 @@
             1
           );
           ctx.fillStyle = bp.isAmber ? '#fde68a' : '#f1f5f9';
-          ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(bp.text, bp.x + bp.w / 2, bp.y + bp.h / 2);
+          drawCanvasText(ctx, bp.text, bp.x + bp.w / 2, bp.y + bp.h / 2, 'center');
         });
 
         // 3. Table Financial Summary Box
@@ -3078,15 +3129,13 @@
         tableRows.forEach((r) => {
           const rowCenterY = rowY + 14;
           ctx.textBaseline = 'middle';
-          ctx.textAlign = 'left';
           ctx.font = `${r.bold ? '600' : '500'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.labelColor;
-          ctx.fillText(r.label, PAD + 20, rowCenterY);
+          drawCanvasText(ctx, r.label, PAD + 20, rowCenterY, 'left');
 
-          ctx.textAlign = 'right';
           ctx.font = `${r.bold ? '700' : '600'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.valueColor;
-          ctx.fillText(r.value, PAD + INNER_W - 20, rowCenterY);
+          drawCanvasText(ctx, r.value, PAD + INNER_W - 20, rowCenterY, 'right');
           rowY += 30;
         });
 
@@ -3095,29 +3144,21 @@
         fillAndStrokeRoundRect(ctx, PAD + 12, netBoxY, INNER_W - 24, netBoxH, 14, '#ecfdf5', '#a7f3d0', 1.5);
 
         ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
         ctx.font = `700 15px ${FONT_FAMILY}`;
         ctx.fillStyle = '#064e3b';
-        ctx.fillText('ยอดสุทธิรวมทั้งโต๊ะ (Net Total)', PAD + 26, netBoxY + netBoxH / 2);
+        drawCanvasText(ctx, 'ยอดสุทธิรวมทั้งโต๊ะ (Net Total)', PAD + 26, netBoxY + netBoxH / 2, 'left');
 
-        ctx.textAlign = 'right';
-        ctx.font = `800 22px ${FONT_FAMILY}`;
+        ctx.font = `700 22px ${FONT_FAMILY}`;
         ctx.fillStyle = '#047857';
-        ctx.fillText(formatCurrency(summary.tableNetTotal), PAD + INNER_W - 26, netBoxY + netBoxH / 2);
+        drawCanvasText(ctx, formatCurrency(summary.tableNetTotal), PAD + INNER_W - 26, netBoxY + netBoxH / 2, 'right');
 
         curY += tableSummaryBoxH + 22;
 
         // 4. Individual Member Breakdown Header
         ctx.textBaseline = 'middle';
-        ctx.textAlign = 'left';
         ctx.font = `700 15px ${FONT_FAMILY}`;
         ctx.fillStyle = '#1e293b';
-        ctx.fillText('ยอดที่แต่ละคนต้องจ่าย', PAD, curY + 12);
-
-        ctx.textAlign = 'right';
-        ctx.font = `600 11.5px ${FONT_FAMILY}`;
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('คำนวณครบทุกสตางค์', W - PAD, curY + 12);
+        drawCanvasText(ctx, 'ยอดที่แต่ละคนต้องจ่าย', PAD, curY + 12, 'left');
 
         curY += membersHeaderH;
 
@@ -3138,13 +3179,11 @@
           ctx.fill();
 
           ctx.textBaseline = 'middle';
-          ctx.textAlign = 'center';
           ctx.font = `700 12px ${FONT_FAMILY}`;
           ctx.fillStyle = '#ffffff';
-          ctx.fillText(String(idx + 1), circleCX, circleCY);
+          drawCanvasText(ctx, String(idx + 1), circleCX, circleCY, 'center');
 
           // Member Name
-          ctx.textAlign = 'left';
           ctx.font = `700 16px ${FONT_FAMILY}`;
           ctx.fillStyle = '#0f172a';
           const nameStartX = circleCX + circleR + 10;
@@ -3152,18 +3191,17 @@
             const lineY = nameLines.length === 1
               ? circleCY
               : (curY + 16 + 12 + lIdx * 22);
-            ctx.fillText(line, nameStartX, lineY);
+            drawCanvasText(ctx, line, nameStartX, lineY, 'left');
           });
 
           // Right-aligned Member Net Amount
-          ctx.textAlign = 'right';
           ctx.font = `500 11px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 20, curY + 16 + 8);
+          drawCanvasText(ctx, isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 20, curY + 16 + 8, 'right');
 
-          ctx.font = `800 18px ${FONT_FAMILY}`;
+          ctx.font = `700 18px ${FONT_FAMILY}`;
           ctx.fillStyle = isZeroNet ? '#94a3b8' : '#047857';
-          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 20, curY + 16 + 28);
+          drawCanvasText(ctx, formatCurrency(mb.netAmount), PAD + INNER_W - 20, curY + 16 + 28, 'right');
 
           // Divider Line
           const divY = curY + 16 + memberHeaderH;
@@ -3179,15 +3217,13 @@
           rows.forEach((r) => {
             const centerY = mRowY + 13;
             ctx.textBaseline = 'middle';
-            ctx.textAlign = 'left';
             ctx.font = `${r.bold ? '500' : '400'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.labelColor;
-            ctx.fillText(r.label, PAD + 20, centerY);
+            drawCanvasText(ctx, r.label, PAD + 20, centerY, 'left');
 
-            ctx.textAlign = 'right';
             ctx.font = `${r.bold ? '700' : '600'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.valueColor;
-            ctx.fillText(r.value, PAD + INNER_W - 20, centerY);
+            drawCanvasText(ctx, r.value, PAD + INNER_W - 20, centerY, 'right');
             mRowY += 26;
           });
 
@@ -3207,9 +3243,8 @@
           const ppBadgeH = 28;
           fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, '#1d4ed8', null, 0);
           ctx.textBaseline = 'middle';
-          ctx.textAlign = 'center';
           ctx.fillStyle = '#ffffff';
-          ctx.fillText(ppBadgeText, W / 2, ppY + ppBadgeH / 2);
+          drawCanvasText(ctx, ppBadgeText, W / 2, ppY + ppBadgeH / 2, 'center');
 
           ppY += ppBadgeH + 18;
 
@@ -3217,13 +3252,13 @@
           const displayAccName = rawPPName ? `ชื่อบัญชี: ${rawPPName}` : 'โอนเงินให้คนจ่ายเงิน';
           ctx.font = `700 15px ${FONT_FAMILY}`;
           ctx.fillStyle = '#0f172a';
-          ctx.fillText(displayAccName, W / 2, ppY);
+          drawCanvasText(ctx, displayAccName, W / 2, ppY, 'center');
           ppY += 24;
 
           // Masked PromptPay ID
           ctx.font = `600 13px ${FONT_FAMILY}`;
           ctx.fillStyle = '#475569';
-          ctx.fillText(`PromptPay ID: ${maskAccountOrPromptPayId(rawPPId)}`, W / 2, ppY);
+          drawCanvasText(ctx, `PromptPay ID: ${maskAccountOrPromptPayId(rawPPId)}`, W / 2, ppY, 'center');
           ppY += 22;
 
           // QR Code Image
@@ -3244,17 +3279,16 @@
           // Footer Hint
           ctx.font = `500 11.5px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          ctx.fillText('สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย', W / 2, ppY);
+          drawCanvasText(ctx, 'สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย', W / 2, ppY, 'center');
 
           curY += ppBoxH + 16;
         }
 
         // 7. Bottom Watermark Credit
         ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        ctx.fillText('GeeBaht (กี่บาท) v1.0.2 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22);
+        drawCanvasText(ctx, 'GeeBaht (กี่บาท) v1.0.3 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
 
         return canvas;
       }
@@ -3549,10 +3583,11 @@
             renderPlatesGrid();
             renderSpecialItemsList();
 
-            // Smooth horizontal auto-scroll to clicked tab
+            // Smooth horizontal-only scroll inside carousel (avoids vertical window jump on iOS Safari)
             const updatedBtn = memberTabsCarousel.querySelector(`[data-tab-id="${activeTabId}"]`);
-            if (updatedBtn && typeof updatedBtn.scrollIntoView === 'function') {
-              updatedBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            if (updatedBtn && typeof memberTabsCarousel.scrollTo === 'function') {
+              const targetLeft = updatedBtn.offsetLeft - (memberTabsCarousel.clientWidth / 2) + (updatedBtn.offsetWidth / 2);
+              memberTabsCarousel.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
             }
           });
         }
@@ -3560,6 +3595,11 @@
         // Screen 2: Plates Grid delegation (+1 on card tap, -1 on sub-button tap)
         const platesGrid = $('plates-grid');
         if (platesGrid) {
+          // Prevent rapid double-tap zoom on mobile browsers
+          platesGrid.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+          });
+
           platesGrid.addEventListener('click', (e) => {
             const decBtn = e.target.closest('[data-plate-dec]');
             if (decBtn) {
