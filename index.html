@@ -138,7 +138,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.0.1
+          v1.0.2
         </span>
       </div>
     </header>
@@ -623,7 +623,6 @@
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">
                 สรุปยอดที่ต้องจ่ายแยกรายคน <span data-html2canvas-ignore="true" class="text-blue-600 font-semibold normal-case">(แตะชื่อเพื่อดู QR รายคน)</span>
               </h3>
-              <span class="text-[11px] text-slate-400">ปัดเศษลงตัว 100%</span>
             </div>
 
             <div id="slip-members-breakdown" class="space-y-2.5">
@@ -1799,11 +1798,11 @@
         renderSetupMembersUI();
       }
 
-      function addMemberByName(rawName, isLiteralSingle = false) {
+      function addMemberByName(rawName, isLiteralSingle = false, shouldFocusInput = false) {
         const rawStr = String(rawName || '').trim();
         const input = $('input-member-name');
         if (!rawStr) {
-          if (input) input.focus();
+          if (shouldFocusInput && input) input.focus();
           return;
         }
 
@@ -1813,7 +1812,7 @@
           : rawStr.split(/[\s,]+/).map((n) => n.trim()).filter(Boolean);
 
         if (namesToAdd.length === 0) {
-          if (input) input.focus();
+          if (shouldFocusInput && input) input.focus();
           return;
         }
 
@@ -1836,6 +1835,9 @@
 
         if (input) {
           input.value = '';
+          if (!shouldFocusInput) {
+            input.blur();
+          }
         }
 
         if (addedCount > 0) {
@@ -1853,7 +1855,7 @@
           showToast(`⚠️ มีชื่อ "${skippedDuplicates.join(', ')}" อยู่ในโต๊ะแล้ว`);
         }
 
-        if (input) {
+        if (shouldFocusInput && input) {
           input.focus();
         }
       }
@@ -2760,14 +2762,15 @@
         if (document.fonts) {
           try {
             await Promise.all([
-              document.fonts.load('400 12px Kanit'),
-              document.fonts.load('500 12px Kanit'),
-              document.fonts.load('600 12px Kanit'),
-              document.fonts.load('600 13px Kanit'),
-              document.fonts.load('700 14px Kanit'),
-              document.fonts.load('700 16px Kanit'),
-              document.fonts.load('700 24px Kanit'),
-              document.fonts.load('800 18px Kanit'),
+              document.fonts.load('12px Kanit'),
+              document.fonts.load('bold 12px Kanit'),
+              document.fonts.load('13px Kanit'),
+              document.fonts.load('bold 13px Kanit'),
+              document.fonts.load('14px Kanit'),
+              document.fonts.load('bold 14px Kanit'),
+              document.fonts.load('16px Kanit'),
+              document.fonts.load('bold 16px Kanit'),
+              document.fonts.load('bold 24px Kanit'),
               document.fonts.load('800 22px Kanit')
             ]);
             await document.fonts.ready;
@@ -2809,17 +2812,27 @@
         const qrDrawable = ppPayload ? getRenderedQRDrawable() : null;
         const hasPPBox = Boolean(ppPayload && qrDrawable);
 
-        const W = 560;
-        const PAD = 32;
+        const W = 580;
+        const PAD = 34;
         const INNER_W = W - PAD * 2;
         const SCALE = 2;
-        const FONT_FAMILY = "'Kanit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        const FONT_FAMILY = 'Kanit, -apple-system, BlinkMacSystemFont, sans-serif';
 
-        // Measure pass on offscreen context to compute exact dynamic height
-        const measureCanvas = document.createElement('canvas');
-        const mCtx = measureCanvas.getContext('2d');
+        // IMPORTANT for WebKit / Safari iOS:
+        // Attaching the canvas to the DOM allows WebKit to resolve web fonts (@font-face Kanit)
+        // accurately rather than falling back to system Helvetica metrics which cause text overshooting
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'fixed';
+        canvas.style.left = '-9999px';
+        canvas.style.top = '-9999px';
+        canvas.style.opacity = '0';
+        canvas.style.pointerEvents = 'none';
+        document.body.appendChild(canvas);
 
-        // Prepare header badges
+        const ctx = canvas.getContext('2d');
+
+        // Header Badges Layout:
+        // Explicit 2-row layout prevents badges from ever crowding or spilling over in any font environment
         const specialsBadgePart = summary.totalSpecialsCount > 0 ? ` + ${summary.totalSpecialsCount} เมนูพิเศษ` : '';
         const badgeTexts = [
           `สมาชิก ${appState.members.length} คน`,
@@ -2833,31 +2846,41 @@
                 : 'Net Price (ไม่บวกเพิ่ม)'
         ];
 
-        // Pre-calculate badge positions (supports multi-line wrapping if badges exceed INNER_W)
-        mCtx.font = `600 12px ${FONT_FAMILY}`;
         const badgePositions = [];
-        let simBadgeX = PAD;
-        let simBadgeRow = 0;
         const badgeH = 28;
         const badgeGapX = 10;
-        const badgeRowH = 36;
-        badgeTexts.forEach((bText, bIdx) => {
-          const textW = Math.ceil(mCtx.measureText(bText).width);
-          const pillW = Math.min(INNER_W, Math.ceil(textW + 24));
-          if (simBadgeX + pillW > PAD + INNER_W && simBadgeX > PAD) {
-            simBadgeRow++;
-            simBadgeX = PAD;
-          }
+
+        // Row 1: Member count & Plate count
+        ctx.font = `600 12px ${FONT_FAMILY}`;
+        let r0X = PAD;
+        [badgeTexts[0], badgeTexts[1]].forEach((bText) => {
+          const textW = Math.ceil(ctx.measureText(bText).width);
+          const pillW = Math.max(88, textW + 24);
           badgePositions.push({
             text: bText,
-            isAmber: bIdx === 2,
-            x: simBadgeX,
-            y: 106 + simBadgeRow * badgeRowH,
+            isAmber: false,
+            x: r0X,
+            y: 104,
             w: pillW,
             h: badgeH
           });
-          simBadgeX += pillW + badgeGapX;
+          r0X += pillW + badgeGapX;
         });
+
+        // Row 2: Tax / Service Charge policy pill
+        const taxBadgeText = badgeTexts[2];
+        const taxTextW = Math.ceil(ctx.measureText(taxBadgeText).width);
+        const taxPillW = Math.min(INNER_W, Math.max(140, taxTextW + 28));
+        badgePositions.push({
+          text: taxBadgeText,
+          isAmber: true,
+          x: PAD,
+          y: 140,
+          w: taxPillW,
+          h: badgeH
+        });
+
+        const headerH = 188;
 
         // Calculate Table Summary rows
         const tableRows = [
@@ -2905,10 +2928,10 @@
         });
 
         // Pre-calculate member card layouts
-        mCtx.font = `700 16px ${FONT_FAMILY}`;
+        ctx.font = `700 16px ${FONT_FAMILY}`;
         const memberLayouts = summary.memberBreakdowns.map((mb, idx) => {
           const nameMaxW = INNER_W - 36 - 34 - 150;
-          const nameLines = wrapCanvasText(mCtx, mb.name, nameMaxW);
+          const nameLines = wrapCanvasText(ctx, mb.name, nameMaxW);
           const memberHeaderH = Math.max(42, nameLines.length * 22 + 14);
 
           const itemCountDesc = `${mb.platesCount} จาน${mb.specialsCount > 0 ? ` + ${mb.specialsCount} เมนูพิเศษ` : ''}`;
@@ -2969,9 +2992,6 @@
           return { mb, idx, nameLines, memberHeaderH, rows, cardH };
         });
 
-        // Compute Header height dynamically based on badge rows
-        const headerH = 106 + (simBadgeRow + 1) * badgeRowH + 16;
-
         // Compute Table Summary Card height
         const netBoxH = 56;
         const tableSummaryBoxH = 18 + tableRows.length * 30 + 12 + netBoxH + 16;
@@ -2983,14 +3003,12 @@
         // Compute PromptPay Footer Box height
         const ppBoxH = 364;
 
-        const footerCreditH = 46;
+        const footerCreditH = 48;
         const totalH = headerH + 24 + tableSummaryBoxH + 22 + membersHeaderH + membersTotalCardsH + (hasPPBox ? ppBoxH + 16 : 0) + footerCreditH;
 
-        // Create High-DPI Canvas
-        const canvas = document.createElement('canvas');
+        // Configure High-DPI Canvas Dimensions
         canvas.width = W * SCALE;
         canvas.height = Math.ceil(totalH * SCALE);
-        const ctx = canvas.getContext('2d');
         ctx.scale(SCALE, SCALE);
 
         // 1. Full Slip Background (Crisp White with Subtle Outer Border)
@@ -3032,7 +3050,7 @@
         ctx.fillStyle = '#ffffff';
         ctx.fillText(restName, PAD, 70);
 
-        // Header Badges Row (Centered inside pill boxes with textBaseline = 'middle', multi-line safe)
+        // Header Badges Row
         ctx.font = `600 12px ${FONT_FAMILY}`;
         badgePositions.forEach((bp) => {
           fillAndStrokeRoundRect(
@@ -3063,12 +3081,12 @@
           ctx.textAlign = 'left';
           ctx.font = `${r.bold ? '600' : '500'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.labelColor;
-          ctx.fillText(r.label, PAD + 18, rowCenterY);
+          ctx.fillText(r.label, PAD + 20, rowCenterY);
 
           ctx.textAlign = 'right';
           ctx.font = `${r.bold ? '700' : '600'} 13.5px ${FONT_FAMILY}`;
           ctx.fillStyle = r.valueColor;
-          ctx.fillText(r.value, PAD + INNER_W - 18, rowCenterY);
+          ctx.fillText(r.value, PAD + INNER_W - 20, rowCenterY);
           rowY += 30;
         });
 
@@ -3112,7 +3130,7 @@
 
           // Number Circle Badge
           const circleR = 12;
-          const circleCX = PAD + 18 + circleR;
+          const circleCX = PAD + 20 + circleR;
           const circleCY = curY + 16 + 18;
           ctx.beginPath();
           ctx.arc(circleCX, circleCY, circleR, 0, Math.PI * 2);
@@ -3125,7 +3143,7 @@
           ctx.fillStyle = '#ffffff';
           ctx.fillText(String(idx + 1), circleCX, circleCY);
 
-          // Member Name (Multi-line safe)
+          // Member Name
           ctx.textAlign = 'left';
           ctx.font = `700 16px ${FONT_FAMILY}`;
           ctx.fillStyle = '#0f172a';
@@ -3137,21 +3155,21 @@
             ctx.fillText(line, nameStartX, lineY);
           });
 
-          // Right-aligned Member Net Amount (or zero-amount notice)
+          // Right-aligned Member Net Amount
           ctx.textAlign = 'right';
           ctx.font = `500 11px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 18, curY + 16 + 8);
+          ctx.fillText(isZeroNet ? 'ไม่มียอดสำหรับมื้อนี้' : 'ยอดสุทธิที่ต้องโอน', PAD + INNER_W - 20, curY + 16 + 8);
 
           ctx.font = `800 18px ${FONT_FAMILY}`;
           ctx.fillStyle = isZeroNet ? '#94a3b8' : '#047857';
-          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 18, curY + 16 + 28);
+          ctx.fillText(formatCurrency(mb.netAmount), PAD + INNER_W - 20, curY + 16 + 28);
 
           // Divider Line
           const divY = curY + 16 + memberHeaderH;
           ctx.beginPath();
-          ctx.moveTo(PAD + 18, divY);
-          ctx.lineTo(PAD + INNER_W - 18, divY);
+          ctx.moveTo(PAD + 20, divY);
+          ctx.lineTo(PAD + INNER_W - 20, divY);
           ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1;
           ctx.stroke();
@@ -3164,19 +3182,19 @@
             ctx.textAlign = 'left';
             ctx.font = `${r.bold ? '500' : '400'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.labelColor;
-            ctx.fillText(r.label, PAD + 18, centerY);
+            ctx.fillText(r.label, PAD + 20, centerY);
 
             ctx.textAlign = 'right';
             ctx.font = `${r.bold ? '700' : '600'} 12.5px ${FONT_FAMILY}`;
             ctx.fillStyle = r.valueColor;
-            ctx.fillText(r.value, PAD + INNER_W - 18, centerY);
+            ctx.fillText(r.value, PAD + INNER_W - 20, centerY);
             mRowY += 26;
           });
 
           curY += cardH + 12;
         });
 
-        // 6. PromptPay QR Box at Bottom of Slip (Rendered only when valid PromptPay QR exists)
+        // 6. PromptPay QR Box at Bottom of Slip
         if (hasPPBox) {
           curY += 6;
           fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, ppBoxH, 18, '#eff6ff', '#bfdbfe', 1.5);
@@ -3185,7 +3203,7 @@
 
           const ppBadgeText = 'สแกน PromptPay เพื่อโอนเงิน';
           ctx.font = `700 12px ${FONT_FAMILY}`;
-          const ppBadgeW = Math.min(INNER_W - 32, Math.ceil(ctx.measureText(ppBadgeText).width + 32));
+          const ppBadgeW = 230;
           const ppBadgeH = 28;
           fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, '#1d4ed8', null, 0);
           ctx.textBaseline = 'middle';
@@ -3236,7 +3254,7 @@
         ctx.textAlign = 'center';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        ctx.fillText('GeeBaht (กี่บาท) v1.0.1 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22);
+        ctx.fillText('GeeBaht (กี่บาท) v1.0.2 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22);
 
         return canvas;
       }
@@ -3276,13 +3294,15 @@
           saveBtn.innerHTML = '<span>⏳ กำลังสร้างรูปสลิปความละเอียดสูง...</span>';
         }
 
+        let canvas = null;
+
         try {
           await ensureFontsLoaded();
 
           // Allow QRCode DOM canvas/img to finish painting if needed
           await new Promise((resolve) => setTimeout(resolve, 80));
 
-          const canvas = renderSlipToNativeCanvas();
+          canvas = renderSlipToNativeCanvas();
           const restSlug = appState.restaurant || 'sushi';
           const now = new Date();
           const pad2 = (n) => String(n).padStart(2, '0');
@@ -3372,6 +3392,9 @@
           console.error('Export slip error:', err);
           showToast('⚠️ เกิดข้อผิดพลาดในการบันทึกรูป');
         } finally {
+          if (canvas && canvas.parentNode) {
+            canvas.parentNode.removeChild(canvas);
+          }
           if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalText;
@@ -3436,22 +3459,27 @@
           inputMemberName.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              addMemberByName(inputMemberName.value);
+              addMemberByName(inputMemberName.value, false, true);
             }
           });
         }
 
         if (btnAddMember && inputMemberName) {
-          btnAddMember.addEventListener('click', () => {
-            addMemberByName(inputMemberName.value);
+          btnAddMember.addEventListener('click', (e) => {
+            e.preventDefault();
+            addMemberByName(inputMemberName.value, false, false);
+            inputMemberName.blur();
           });
         }
 
         // Quick nickname buttons
         document.querySelectorAll('.quick-name-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const input = $('input-member-name');
+            if (input) input.blur();
             const qName = btn.getAttribute('data-quick-name');
-            addMemberByName(qName, true);
+            addMemberByName(qName, true, false);
           });
         });
 
