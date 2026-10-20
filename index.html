@@ -162,7 +162,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.0.8
+          v1.0.9
         </span>
       </div>
     </header>
@@ -1889,7 +1889,7 @@
         delete appState.platesRecord[memberId];
         delete appState.specialItems[memberId];
         if (activeTabId === memberId) {
-          activeTabId = SHARED_POOL_ID;
+          activeTabId = appState.members.length > 0 ? appState.members[0].id : SHARED_POOL_ID;
         }
         saveState();
         renderSetupMembersUI();
@@ -3331,7 +3331,7 @@
         ctx.textBaseline = 'middle';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.0.8 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
+        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.0.9 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
 
         return canvas;
       }
@@ -3580,6 +3580,9 @@
               showToast('⚠️ กรุณาเพิ่มสมาชิกอย่างน้อย 1 คน');
               return;
             }
+            if (activeTabId === SHARED_POOL_ID && appState.members.length > 0) {
+              activeTabId = appState.members[0].id;
+            }
             switchScreen('counter');
           });
         }
@@ -3609,6 +3612,9 @@
             }
             appState.isActiveSession = true;
             ensureEntityRecords();
+            if (appState.members.length > 0) {
+              activeTabId = appState.members[0].id;
+            }
             saveState();
             switchScreen('counter');
           });
