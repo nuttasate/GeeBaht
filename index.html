@@ -162,7 +162,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.0.5
+          v1.0.8
         </span>
       </div>
     </header>
@@ -508,14 +508,14 @@
             <label for="input-promptpay-name" class="block text-xs font-semibold text-slate-700 mb-1.5">
               ชื่อบัญชีผู้รับเงิน (แสดงในสลิป)
             </label>
-            <input type="text" id="input-promptpay-name" placeholder="เช่น ต้น (ไม่บังคับ)" maxlength="40"
+            <input type="text" id="input-promptpay-name" placeholder="แนะนำให้ใส่ เพื่อให้เพื่อนเช็คชื่อก่อนโอน" maxlength="40"
               class="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none transition" />
           </div>
 
           <!-- Validation Status & Action Footer -->
           <div class="pt-1 border-t border-slate-200/60 space-y-2">
             <p id="promptpay-validation-msg" class="text-[11px] text-slate-500 leading-relaxed">
-              💡 กรอกเบอร์มือถือพร้อมเพย์ 10 หลัก (06/08/09) หรือเลขบัตรประชาชน 13 หลัก เพื่อสร้าง QR Code ท้ายใบเสร็จ
+              💡 กรอกเบอร์มือถือ หรือเลขบัตรประชาชน เพื่อสร้าง QR Code ท้ายสลิป
             </p>
             <div class="flex items-center justify-end gap-2">
               <button type="button" id="btn-clear-pp-data"
@@ -667,7 +667,7 @@
                 <div id="main-qr-code"></div>
               </div>
               <p id="slip-pp-footer-hint" class="text-[11px] text-slate-500 mt-2.5 leading-normal">
-                สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย
+                🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน
               </p>
               <p data-html2canvas-ignore="true" class="text-[11px] text-blue-600 font-medium mt-1 leading-normal">
                 (หรือแตะที่การ์ดชื่อตัวเองด้านบนเพื่อสร้าง QR ระบุยอดโอนอัตโนมัติ)
@@ -713,7 +713,7 @@
         <span class="text-[11px] font-semibold uppercase tracking-wider bg-white/15 px-2.5 py-0.5 rounded-full text-blue-200">
           PromptPay QR รายบุคคล
         </span>
-        <h3 id="modal-qr-member-name" class="text-xl font-extrabold mt-2">ชื่อสมาชิก</h3>
+        <h3 id="modal-qr-member-name" class="text-xl font-extrabold mt-2">ค่าอาหารของสมาชิก</h3>
         <p id="modal-qr-member-detail" class="text-xs text-blue-200 mt-0.5">รายละเอียดอาหาร</p>
       </div>
 
@@ -731,7 +731,7 @@
             <div id="modal-individual-qrcode"></div>
           </div>
           <p id="modal-qr-host-info" class="text-xs font-semibold text-slate-700"></p>
-          <p class="text-[11px] text-slate-400">สแกนด้วยแอปธนาคาร ยอดเงินจะขึ้นอัตโนมัติทันที</p>
+          <p class="text-[11px] text-slate-500 font-medium leading-relaxed">สแกนด้วยแอปธนาคาร ยอดจะขึ้นทันที • 🔍 โปรดเช็คชื่อผู้รับก่อนกดยืนยัน</p>
         </div>
 
         <div id="modal-qr-zero-state" class="hidden bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-800 w-full space-y-1">
@@ -741,7 +741,7 @@
 
         <div id="modal-qr-missing-state" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 w-full space-y-2">
           <p class="font-bold">⚠️ ยังไม่ได้ระบุเบอร์พร้อมเพย์ของคนจ่ายเงิน</p>
-          <p class="text-[11px]">กรุณากรอกเบอร์โทรศัพท์มือถือ 10 หลัก หรือเลขบัตรประชาชน 13 หลักในส่วน "PromptPay (คนจ่ายเงิน)" ด้านบนของหน้าเช็คบิล</p>
+          <p class="text-[11px]">กรุณากรอกเบอร์มือถือ หรือเลขบัตรประชาชน ในส่วน "พร้อมเพย์" ด้านบนของหน้าเช็คบิล</p>
           <button type="button" id="btn-modal-focus-pp" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl text-xs transition inline-block mt-1">
             ไปกรอกเบอร์พร้อมเพย์
           </button>
@@ -2595,7 +2595,7 @@
         if (!rawInput) {
           ppBox.classList.add('hidden');
           if (msgEl) {
-            msgEl.textContent = '💡 กรอกเบอร์มือถือพร้อมเพย์ 10 หลัก (06/08/09) หรือเลขบัตรประชาชน 13 หลัก เพื่อสร้าง QR Code ท้ายใบเสร็จ';
+            msgEl.textContent = '💡 กรอกเบอร์มือถือ หรือเลขบัตรประชาชน เพื่อสร้าง QR Code ท้ายสลิป';
             msgEl.className = 'text-[11px] text-slate-400 leading-relaxed';
           }
           return;
@@ -2604,7 +2604,7 @@
         if (!payload) {
           ppBox.classList.add('hidden');
           if (msgEl) {
-            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเฉพาะเบอร์มือถือพร้อมเพย์ 10 หลัก (ขึ้นต้น 06, 08, 09) หรือเลขบัตรประชาชน 13 หลัก (ไม่รองรับเลขบัญชีธนาคาร)';
+            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน 13 หลัก (ไม่รองรับเลขบัญชีธนาคาร)';
             msgEl.className = 'text-[11px] text-rose-600 font-medium leading-relaxed';
           }
           return;
@@ -2625,11 +2625,11 @@
         }
 
         if (footerHint) {
-          footerHint.textContent = 'สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย';
+          footerHint.textContent = '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน';
         }
 
         if (msgEl) {
-          msgEl.textContent = `✅ สร้าง PromptPay QR Code เรียบร้อย • แสดงเลขแบบซ่อนบางส่วน (${maskAccountOrPromptPayId(rawInput)}) เพื่อความปลอดภัย`;
+          msgEl.textContent = '✅ สร้าง QR Code แล้ว • ⚠️ โปรดตรวจทานเลขให้ถูกต้อง เพื่อป้องกันเพื่อนโอนผิดบัญชี';
           msgEl.className = 'text-[11px] text-emerald-600 font-medium leading-relaxed';
         }
 
@@ -2667,7 +2667,7 @@
         const breakdownBox = $('modal-qr-breakdown-box');
 
         if (zeroState) zeroState.classList.add('hidden');
-        if (nameEl) nameEl.textContent = mb.name;
+        if (nameEl) nameEl.textContent = `ค่าอาหารของ ${mb.name}`;
         if (detailEl) {
           detailEl.textContent = `จานส่วนตัว ${mb.platesCount} จาน${mb.specialsCount > 0 ? ` • เมนูพิเศษ ${mb.specialsCount} รายการ` : ''}`;
         }
@@ -3322,7 +3322,7 @@
           // Footer Hint
           ctx.font = `500 11.5px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          drawCanvasText(ctx, 'สแกน QR Code นี้เพื่อโอนเงินตามยอดสุทธิของตัวเองได้เลย', W / 2, ppY, 'center');
+          drawCanvasText(ctx, '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน', W / 2, ppY, 'center');
 
           curY += ppBoxH + 16;
         }
@@ -3331,7 +3331,7 @@
         ctx.textBaseline = 'middle';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.0.5 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
+        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.0.8 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
 
         return canvas;
       }
