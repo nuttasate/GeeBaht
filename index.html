@@ -191,7 +191,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.1.3
+          v1.1.4
         </span>
       </div>
     </header>
@@ -521,14 +521,14 @@
           <div>
             <div class="flex items-center justify-between gap-2 mb-1.5">
               <label for="input-promptpay-id" class="block text-xs font-semibold text-slate-700 truncate">
-                เบอร์พร้อมเพย์ (มือถือ 10 หลัก / บัตร ปชช. 13 หลัก / TrueMoney)
+                เบอร์มือถือพร้อมเพย์ (10 หลัก) / บัตรประชาชน (13 หลัก)
               </label>
               <button type="button" id="btn-toggle-pp-visibility"
                 class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/80 hover:bg-blue-100/80 px-2 py-0.5 rounded-md border border-blue-200/70 whitespace-nowrap shrink-0 transition">
                 👁️ แสดงเลข
               </button>
             </div>
-            <input type="text" id="input-promptpay-id" inputmode="numeric" placeholder="เช่น 081-234-5678, เลข ปชช., หรือ 14000..." maxlength="24" autocomplete="off"
+            <input type="text" id="input-promptpay-id" inputmode="numeric" placeholder="เช่น 081-234-5678 หรือ 1-1001-00123-45-6" maxlength="24" autocomplete="off"
               class="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 outline-none transition" />
           </div>
 
@@ -755,11 +755,14 @@
         </div>
 
         <!-- QR Container, Zero-Amount State, or Missing PromptPay State -->
-        <div id="modal-qr-present-state" class="flex flex-col items-center space-y-2 w-full">
-          <div class="bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center justify-center">
+        <div id="modal-qr-present-state" class="flex flex-col items-center space-y-2.5 w-full">
+          <div id="modal-qr-frame" class="bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center justify-center">
             <div id="modal-individual-qrcode"></div>
           </div>
-          <p id="modal-qr-host-info" class="text-xs font-semibold text-slate-700"></p>
+          <div class="space-y-0.5 text-center">
+            <p id="modal-qr-host-name" class="text-xs font-bold text-slate-800 leading-snug"></p>
+            <p id="modal-qr-host-id" class="text-[11px] font-semibold text-slate-600 leading-normal"></p>
+          </div>
           <p class="text-[11px] text-slate-500 font-medium leading-relaxed">สแกนด้วยแอปธนาคาร ยอดจะขึ้นทันที • 🔍 โปรดเช็คชื่อผู้รับก่อนกดยืนยัน</p>
         </div>
 
@@ -2692,7 +2695,7 @@
         if (!payload) {
           ppBox.classList.add('hidden');
           if (msgEl) {
-            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเบอร์มือถือ 10 หลัก, บัตร ปชช. 13 หลัก หรือ TrueMoney (14000 + เบอร์มือถือ 15 หลัก)';
+            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน 13 หลัก (ไม่รองรับเลขบัญชีธนาคาร)';
             msgEl.className = 'text-[11px] text-rose-600 font-medium leading-relaxed';
           }
           return;
@@ -2731,7 +2734,7 @@
           const idDisplay = isPromptPayInputMasked
             ? maskAccountOrPromptPayId(rawInput)
             : formatPromptPayIdReadable(rawInput);
-          idEl.textContent = `${isTrueMoney ? 'TrueMoney ID' : 'PromptPay ID'}: ${idDisplay}`;
+          idEl.textContent = `${isTrueMoney ? 'TrueMoney PromptPay' : 'PromptPay ID'}: ${idDisplay}`;
           idEl.classList.remove('hidden');
         }
 
@@ -2849,6 +2852,13 @@
             : 'PromptPay QR รายบุคคล';
         }
 
+        const qrFrame = $('modal-qr-frame');
+        if (qrFrame) {
+          qrFrame.className = isTrueMoney
+            ? 'bg-white p-4 rounded-2xl border-2 border-orange-200 shadow-sm flex items-center justify-center'
+            : 'bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center justify-center';
+        }
+
         if (payload && presentState && missingState && qrTarget) {
           presentState.classList.remove('hidden');
           missingState.classList.add('hidden');
@@ -2865,14 +2875,19 @@
             });
           }
 
-          if (hostInfo) {
-            const accName = appState.promptPay.name ? `${appState.promptPay.name} • ` : '';
-            const idLabel = isTrueMoney ? 'TrueMoney ID: ' : '';
-            const idDisplay = isPromptPayInputMasked
-              ? maskAccountOrPromptPayId(cleanId)
-              : formatPromptPayIdReadable(cleanId);
-            hostInfo.textContent = `${accName}${idLabel}${idDisplay}`;
-          }
+          const hostNameEl = $('modal-qr-host-name');
+          const hostIdEl = $('modal-qr-host-id');
+          const idPrefix = isTrueMoney ? 'TrueMoney PromptPay' : 'PromptPay ID';
+          const idDisplay = isPromptPayInputMasked
+            ? maskAccountOrPromptPayId(cleanId)
+            : formatPromptPayIdReadable(cleanId);
+          const displayName = appState.promptPay.name
+            ? `ชื่อบัญชี: ${appState.promptPay.name}`
+            : 'โอนเงินให้คนจ่ายเงิน';
+
+          if (hostNameEl) hostNameEl.textContent = displayName;
+          if (hostIdEl) hostIdEl.textContent = `${idPrefix}: ${idDisplay}`;
+          if (hostInfo) hostInfo.textContent = `${displayName} • ${idPrefix}: ${idDisplay}`;
         } else if (presentState && missingState) {
           presentState.classList.add('hidden');
           missingState.classList.remove('hidden');
@@ -3439,10 +3454,10 @@
           drawCanvasText(ctx, displayAccName, W / 2, ppY, 'center');
           ppY += 24;
 
-          // Masked or Unmasked PromptPay ID / TrueMoney ID according to current visibility toggle
+          // Masked or Unmasked PromptPay ID / TrueMoney PromptPay according to current visibility toggle
           ctx.font = `600 13px ${FONT_FAMILY}`;
           ctx.fillStyle = '#475569';
-          const idPrefix = isTrueMoney ? 'TrueMoney ID' : 'PromptPay ID';
+          const idPrefix = isTrueMoney ? 'TrueMoney PromptPay' : 'PromptPay ID';
           const idDisplay = isPromptPayInputMasked
             ? maskAccountOrPromptPayId(rawPPId)
             : formatPromptPayIdReadable(rawPPId);
@@ -3479,7 +3494,7 @@
         ctx.textBaseline = 'middle';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.1.3 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
+        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.1.4 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
 
         return canvas;
       }
