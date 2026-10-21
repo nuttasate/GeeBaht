@@ -191,7 +191,7 @@
           </div>
         </div>
         <span id="header-badge" class="text-[11px] bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-full font-medium border border-white/15">
-          v1.1.1
+          v1.1.3
         </span>
       </div>
     </header>
@@ -521,14 +521,14 @@
           <div>
             <div class="flex items-center justify-between gap-2 mb-1.5">
               <label for="input-promptpay-id" class="block text-xs font-semibold text-slate-700 truncate">
-                เบอร์มือถือพร้อมเพย์ (10 หลัก) / บัตรประชาชน (13 หลัก)
+                เบอร์พร้อมเพย์ (มือถือ 10 หลัก / บัตร ปชช. 13 หลัก / TrueMoney)
               </label>
               <button type="button" id="btn-toggle-pp-visibility"
                 class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/80 hover:bg-blue-100/80 px-2 py-0.5 rounded-md border border-blue-200/70 whitespace-nowrap shrink-0 transition">
                 👁️ แสดงเลข
               </button>
             </div>
-            <input type="text" id="input-promptpay-id" inputmode="numeric" placeholder="เช่น 0812345678 หรือ 1100100123456" maxlength="17" autocomplete="off"
+            <input type="text" id="input-promptpay-id" inputmode="numeric" placeholder="เช่น 081-234-5678, เลข ปชช., หรือ 14000..." maxlength="24" autocomplete="off"
               class="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800 outline-none transition" />
           </div>
 
@@ -685,8 +685,8 @@
 
           <!-- Main PromptPay QR Section inside Slip (Single QR at the bottom) -->
           <div id="slip-promptpay-box" class="hidden border-t-2 border-dashed border-slate-200 pt-4 mt-2">
-            <div class="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 flex flex-col items-center text-center">
-              <div class="inline-block bg-blue-900 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2 leading-normal">
+            <div id="slip-pp-inner-box" class="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <div id="slip-pp-badge" class="inline-block bg-blue-900 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2 leading-normal">
                 🇹🇭 THAI QR PAYMENT • PROMPTPAY
               </div>
               <p id="slip-pp-account-name" class="text-sm font-bold text-slate-800 leading-snug"></p>
@@ -735,11 +735,11 @@
     <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-pop border border-slate-100">
       
       <!-- Modal Top Header -->
-      <div class="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-5 text-center relative">
+      <div id="modal-qr-header" class="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-5 text-center relative">
         <button type="button" id="btn-close-qr-modal" class="absolute right-4 top-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-sm font-bold transition">
           ✕
         </button>
-        <span class="text-[11px] font-semibold uppercase tracking-wider bg-white/15 px-2.5 py-0.5 rounded-full text-blue-200">
+        <span id="modal-qr-type-badge" class="text-[11px] font-semibold uppercase tracking-wider bg-white/15 px-2.5 py-0.5 rounded-full text-blue-200">
           PromptPay QR รายบุคคล
         </span>
         <h3 id="modal-qr-member-name" class="text-xl font-extrabold mt-2">ค่าอาหารของสมาชิก</h3>
@@ -1530,16 +1530,19 @@
 
       /**
        * Built-in pure JS function generatePromptPayPayload(ppId, amount)
-       * Supports 10-digit Thai mobile numbers (must start with 06, 08, or 09 -> 0066xxxxxxxxx)
-       * and 13-digit Thai National ID / Tax ID.
-       * Rejects 10-digit bank account numbers (e.g. starting with 01-05, 07, 1-9) so they never generate a wrong mobile QR.
+       * Supports:
+       * 1. 10-digit Thai mobile numbers (starts with 06, 08, 09 -> Tag 29 Sub-tag 01)
+       * 2. 13-digit Thai National ID / Tax ID -> Tag 29 Sub-tag 02
+       * 3. 15-digit TrueMoney e-Wallet PromptPay (14000 + 10-digit mobile -> Tag 29 Sub-tag 03)
+       * Rejects 10-digit bank account numbers so they never generate a wrong QR.
        */
       function generatePromptPayPayload(ppId, amount) {
         const sanitized = String(ppId || '').replace(/[^0-9]/g, '');
         const isValidMobile = /^0[689]\d{8}$/.test(sanitized);
         const isValidNatId = /^\d{13}$/.test(sanitized);
+        const isValidTrueMoney = /^14000\d{10}$/.test(sanitized);
 
-        if (!isValidMobile && !isValidNatId) {
+        if (!isValidMobile && !isValidNatId && !isValidTrueMoney) {
           return null;
         }
 
@@ -1556,9 +1559,12 @@
           // Sub-tag 01: Mobile number formatted as 0066 + 9 digits (strip leading 0)
           const formattedPhone = '0066' + sanitized.substring(1);
           subTagTarget = formatTLV('01', formattedPhone);
-        } else {
+        } else if (isValidNatId) {
           // Sub-tag 02: 13-digit National ID / Tax ID
           subTagTarget = formatTLV('02', sanitized);
+        } else if (isValidTrueMoney) {
+          // Sub-tag 03: 15-digit e-Wallet ID (TrueMoney PromptPay e-Wallet: 14000 + 10-digit mobile)
+          subTagTarget = formatTLV('03', sanitized);
         }
         const tag29 = formatTLV('29', subTag00 + subTagTarget);
 
@@ -2350,6 +2356,11 @@
         if (!trimmed) return '';
         const digits = trimmed.replace(/[^0-9]/g, '');
 
+        // 15-digit TrueMoney e-Wallet (14000 + 10-digit mobile): 14000-08X-XXX-1234
+        if (digits.length === 15 && /^14000\d{10}$/.test(digits)) {
+          const mob = digits.slice(5);
+          return `14000-${mob.slice(0, 2)}X-XXX-${mob.slice(6)}`;
+        }
         // 10-digit Thai Mobile Phone (06X, 08X, 09X): 08X-XXX-1234
         if (digits.length === 10 && /^0[689]\d{8}$/.test(digits)) {
           return `${digits.slice(0, 2)}X-XXX-${digits.slice(6)}`;
@@ -2363,6 +2374,45 @@
           return digits.slice(0, 2) + 'X'.repeat(digits.length - 4) + digits.slice(-2);
         }
         return trimmed;
+      }
+
+      function formatPromptPayIdReadable(rawId) {
+        const trimmed = String(rawId || '').trim();
+        if (!trimmed) return '';
+        const digits = trimmed.replace(/[^0-9]/g, '');
+        if (!digits) return '';
+
+        // 1. TrueMoney (starts with 14000 or typing 14000...)
+        if (digits.startsWith('14000')) {
+          let res = '14000';
+          const rest = digits.slice(5, 15);
+          if (rest.length > 0) res += '-' + rest.slice(0, 3);
+          if (rest.length > 3) res += '-' + rest.slice(3, 6);
+          if (rest.length > 6) res += '-' + rest.slice(6, 10);
+          return res;
+        }
+        // While typing 14000 prefix (e.g. 14, 140, 1400)
+        if ('14000'.startsWith(digits)) {
+          return digits;
+        }
+
+        // 2. Thai Mobile Phone (starts with 0)
+        if (digits.startsWith('0')) {
+          const limited = digits.slice(0, 10);
+          let res = limited.slice(0, 3);
+          if (limited.length > 3) res += '-' + limited.slice(3, 6);
+          if (limited.length > 6) res += '-' + limited.slice(6, 10);
+          return res;
+        }
+
+        // 3. Thai Citizen ID (13 digits: X-XXXX-XXXXX-XX-X)
+        const limited = digits.slice(0, 13);
+        let res = limited.slice(0, 1);
+        if (limited.length > 1) res += '-' + limited.slice(1, 5);
+        if (limited.length > 5) res += '-' + limited.slice(5, 10);
+        if (limited.length > 10) res += '-' + limited.slice(10, 12);
+        if (limited.length > 12) res += '-' + limited.slice(12, 13);
+        return res;
       }
 
       function renderPromptPayCardState() {
@@ -2395,7 +2445,12 @@
 
         if (compactSummary) {
           if (isValidPP) {
-            const maskedPart = maskAccountOrPromptPayId(rawId);
+            const isTrueMoney = cleanDigits.length === 15 && cleanDigits.startsWith('14000');
+            const prefix = isTrueMoney ? '🟠 TrueMoney: ' : '';
+            const idPart = isPromptPayInputMasked
+              ? maskAccountOrPromptPayId(rawId)
+              : formatPromptPayIdReadable(rawId);
+            const maskedPart = `${prefix}${idPart}`;
             const namePart = rawName ? ` • ${rawName}` : '';
             compactSummary.textContent = `${maskedPart}${namePart}`;
             compactSummary.className = 'text-[11px] font-semibold text-slate-700 truncate';
@@ -2426,15 +2481,17 @@
         const toggleBtn = $('btn-toggle-pp-visibility');
         if (!ppIdInput) return;
 
+        const rawVal = appState.promptPay.id || '';
+        const cleanDigits = String(rawVal).replace(/[^0-9]/g, '');
+        const isValidPP = Boolean(generatePromptPayPayload(cleanDigits, null));
+
         if (document.activeElement === ppIdInput || !isPromptPayInputMasked) {
-          ppIdInput.value = appState.promptPay.id || '';
+          ppIdInput.value = formatPromptPayIdReadable(rawVal);
           if (toggleBtn) toggleBtn.textContent = '🙈 ซ่อนเลข';
         } else {
-          const cleanDigits = String(appState.promptPay.id || '').replace(/[^0-9]/g, '');
-          const isValidPP = Boolean(generatePromptPayPayload(cleanDigits, null));
-          ppIdInput.value = (appState.promptPay.id && isValidPP)
-            ? maskAccountOrPromptPayId(appState.promptPay.id)
-            : (appState.promptPay.id || '');
+          ppIdInput.value = (rawVal && isValidPP)
+            ? maskAccountOrPromptPayId(rawVal)
+            : formatPromptPayIdReadable(rawVal);
           if (toggleBtn) toggleBtn.textContent = '👁️ แสดงเลข';
         }
         renderPromptPayCardState();
@@ -2608,6 +2665,8 @@
 
       function renderMainPromptPayQR() {
         const ppBox = $('slip-promptpay-box');
+        const ppInnerBox = $('slip-pp-inner-box');
+        const ppBadge = $('slip-pp-badge');
         const qrWrapper = $('main-qr-code-wrapper');
         const qrContainer = $('main-qr-code');
         const nameEl = $('slip-pp-account-name');
@@ -2633,14 +2692,34 @@
         if (!payload) {
           ppBox.classList.add('hidden');
           if (msgEl) {
-            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน 13 หลัก (ไม่รองรับเลขบัญชีธนาคาร)';
+            msgEl.textContent = '⚠️ รูปแบบไม่ถูกต้อง: กรุณากรอกเบอร์มือถือ 10 หลัก, บัตร ปชช. 13 หลัก หรือ TrueMoney (14000 + เบอร์มือถือ 15 หลัก)';
             msgEl.className = 'text-[11px] text-rose-600 font-medium leading-relaxed';
           }
           return;
         }
 
+        const isTrueMoney = cleanDigits.length === 15 && cleanDigits.startsWith('14000');
+
         ppBox.classList.remove('hidden');
         if (qrWrapper) qrWrapper.classList.remove('hidden');
+
+        if (ppInnerBox) {
+          if (isTrueMoney) {
+            ppInnerBox.className = 'bg-orange-50/70 border border-orange-200 rounded-2xl p-4 flex flex-col items-center text-center';
+          } else {
+            ppInnerBox.className = 'bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 flex flex-col items-center text-center';
+          }
+        }
+
+        if (ppBadge) {
+          if (isTrueMoney) {
+            ppBadge.className = 'inline-block bg-gradient-to-r from-orange-500 to-amber-600 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2 leading-normal shadow-xs';
+            ppBadge.textContent = '🟠 PROMPTPAY • TRUEMONEY WALLET';
+          } else {
+            ppBadge.className = 'inline-block bg-blue-900 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2 leading-normal';
+            ppBadge.textContent = '🇹🇭 THAI QR PAYMENT • PROMPTPAY';
+          }
+        }
 
         if (nameEl) {
           nameEl.textContent = appState.promptPay.name
@@ -2649,17 +2728,26 @@
         }
 
         if (idEl) {
-          idEl.textContent = `PromptPay ID: ${maskAccountOrPromptPayId(rawInput)}`;
+          const idDisplay = isPromptPayInputMasked
+            ? maskAccountOrPromptPayId(rawInput)
+            : formatPromptPayIdReadable(rawInput);
+          idEl.textContent = `${isTrueMoney ? 'TrueMoney ID' : 'PromptPay ID'}: ${idDisplay}`;
           idEl.classList.remove('hidden');
         }
 
         if (footerHint) {
-          footerHint.textContent = '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน';
+          footerHint.textContent = isTrueMoney
+            ? '🔍 สแกนด้วยแอปธนาคารใดก็ได้ เงินจะเข้า TrueMoney Wallet ของผู้รับโดยตรง'
+            : '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน';
         }
 
         if (msgEl) {
-          msgEl.textContent = '✅ สร้าง QR Code แล้ว • ⚠️ โปรดตรวจทานเลขให้ถูกต้อง เพื่อป้องกันเพื่อนโอนผิดบัญชี';
-          msgEl.className = 'text-[11px] text-emerald-600 font-medium leading-relaxed';
+          msgEl.textContent = isTrueMoney
+            ? '✅ ตรวจพบพร้อมเพย์ TrueMoney • ⚠️ โปรดตรวจทานเบอร์โทรให้ถูกต้อง'
+            : '✅ สร้าง QR Code แล้ว • ⚠️ โปรดตรวจทานเลขให้ถูกต้อง เพื่อป้องกันเพื่อนโอนผิดบัญชี';
+          msgEl.className = isTrueMoney
+            ? 'text-[11px] text-orange-600 font-medium leading-relaxed'
+            : 'text-[11px] text-emerald-600 font-medium leading-relaxed';
         }
 
         qrContainer.innerHTML = '';
@@ -2745,7 +2833,21 @@
         }
 
         const cleanId = String(appState.promptPay.id || '').replace(/[^0-9]/g, '');
+        const isTrueMoney = cleanId.length === 15 && cleanId.startsWith('14000');
         const payload = generatePromptPayPayload(cleanId, mb.netAmount);
+
+        const modalHeader = $('modal-qr-header');
+        const modalTypeBadge = $('modal-qr-type-badge');
+        if (modalHeader) {
+          modalHeader.className = isTrueMoney
+            ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 text-white p-5 text-center relative'
+            : 'bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-5 text-center relative';
+        }
+        if (modalTypeBadge) {
+          modalTypeBadge.textContent = isTrueMoney
+            ? '🟠 PROMPTPAY • TRUEMONEY QR'
+            : 'PromptPay QR รายบุคคล';
+        }
 
         if (payload && presentState && missingState && qrTarget) {
           presentState.classList.remove('hidden');
@@ -2765,7 +2867,11 @@
 
           if (hostInfo) {
             const accName = appState.promptPay.name ? `${appState.promptPay.name} • ` : '';
-            hostInfo.textContent = `${accName}${maskAccountOrPromptPayId(cleanId)}`;
+            const idLabel = isTrueMoney ? 'TrueMoney ID: ' : '';
+            const idDisplay = isPromptPayInputMasked
+              ? maskAccountOrPromptPayId(cleanId)
+              : formatPromptPayIdReadable(cleanId);
+            hostInfo.textContent = `${accName}${idLabel}${idDisplay}`;
           }
         } else if (presentState && missingState) {
           presentState.classList.add('hidden');
@@ -3305,18 +3411,24 @@
         // 6. PromptPay QR Box at Bottom of Slip
         if (hasPPBox) {
           curY += 6;
-          fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, ppBoxH, 18, '#eff6ff', '#bfdbfe', 1.5);
+          const isTrueMoney = cleanPPDigits.length === 15 && cleanPPDigits.startsWith('14000');
+          const boxBgColor = isTrueMoney ? '#fff7ed' : '#eff6ff';
+          const boxBorderColor = isTrueMoney ? '#fed7aa' : '#bfdbfe';
+          const badgeBgColor = isTrueMoney ? '#ea580c' : '#1d4ed8';
+          const badgeText = isTrueMoney ? 'สแกน PromptPay • TrueMoney' : 'สแกน PromptPay เพื่อโอนเงิน';
+          const qrBorderColor = isTrueMoney ? '#ffedd5' : '#dbeafe';
+
+          fillAndStrokeRoundRect(ctx, PAD, curY, INNER_W, ppBoxH, 18, boxBgColor, boxBorderColor, 1.5);
 
           let ppY = curY + 22;
 
-          const ppBadgeText = 'สแกน PromptPay เพื่อโอนเงิน';
           ctx.font = `700 12px ${FONT_FAMILY}`;
           const ppBadgeW = 230;
           const ppBadgeH = 28;
-          fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, '#1d4ed8', null, 0);
+          fillAndStrokeRoundRect(ctx, (W - ppBadgeW) / 2, ppY, ppBadgeW, ppBadgeH, 999, badgeBgColor, null, 0);
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#ffffff';
-          drawCanvasText(ctx, ppBadgeText, W / 2, ppY + ppBadgeH / 2, 'center');
+          drawCanvasText(ctx, badgeText, W / 2, ppY + ppBadgeH / 2, 'center');
 
           ppY += ppBadgeH + 18;
 
@@ -3327,10 +3439,14 @@
           drawCanvasText(ctx, displayAccName, W / 2, ppY, 'center');
           ppY += 24;
 
-          // Masked PromptPay ID
+          // Masked or Unmasked PromptPay ID / TrueMoney ID according to current visibility toggle
           ctx.font = `600 13px ${FONT_FAMILY}`;
           ctx.fillStyle = '#475569';
-          drawCanvasText(ctx, `PromptPay ID: ${maskAccountOrPromptPayId(rawPPId)}`, W / 2, ppY, 'center');
+          const idPrefix = isTrueMoney ? 'TrueMoney ID' : 'PromptPay ID';
+          const idDisplay = isPromptPayInputMasked
+            ? maskAccountOrPromptPayId(rawPPId)
+            : formatPromptPayIdReadable(rawPPId);
+          drawCanvasText(ctx, `${idPrefix}: ${idDisplay}`, W / 2, ppY, 'center');
           ppY += 22;
 
           // QR Code Image
@@ -3338,7 +3454,7 @@
           const qrSize = 164;
           const qrFrameX = (W - qrFrameSize) / 2;
           const qrFrameY = ppY + 4;
-          fillAndStrokeRoundRect(ctx, qrFrameX, qrFrameY, qrFrameSize, qrFrameSize, 16, '#ffffff', '#dbeafe', 1.5);
+          fillAndStrokeRoundRect(ctx, qrFrameX, qrFrameY, qrFrameSize, qrFrameSize, 16, '#ffffff', qrBorderColor, 1.5);
           ctx.drawImage(
             qrDrawable,
             qrFrameX + (qrFrameSize - qrSize) / 2,
@@ -3351,7 +3467,10 @@
           // Footer Hint
           ctx.font = `500 11.5px ${FONT_FAMILY}`;
           ctx.fillStyle = '#64748b';
-          drawCanvasText(ctx, '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน', W / 2, ppY, 'center');
+          const hintText = isTrueMoney
+            ? '🔍 สแกนด้วยแอปธนาคารใดก็ได้ เงินจะเข้า TrueMoney Wallet ของผู้รับ'
+            : '🔍 โปรดตรวจสอบชื่อบัญชีผู้รับในแอปธนาคารก่อนกดยืนยันโอนเงิน';
+          drawCanvasText(ctx, hintText, W / 2, ppY, 'center');
 
           curY += ppBoxH + 16;
         }
@@ -3360,7 +3479,7 @@
         ctx.textBaseline = 'middle';
         ctx.font = `500 11.5px ${FONT_FAMILY}`;
         ctx.fillStyle = '#94a3b8';
-        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.1.1 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
+        drawCanvasText(ctx, '🍣 GeeBaht (กี่บาท) v1.1.3 • หารค่าซูชิสายพานยุติธรรม ครบทุกสตางค์', W / 2, totalH - 22, 'center');
 
         return canvas;
       }
@@ -3873,15 +3992,60 @@
 
         if (inputPPId) {
           inputPPId.addEventListener('focus', () => {
-            inputPPId.value = appState.promptPay.id || '';
+            inputPPId.value = formatPromptPayIdReadable(appState.promptPay.id || '');
           });
 
           inputPPId.addEventListener('blur', () => {
             syncPromptPayInputDisplay();
           });
 
+          inputPPId.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && inputPPId.selectionStart === inputPPId.selectionEnd) {
+              const pos = inputPPId.selectionStart;
+              if (pos > 0 && inputPPId.value[pos - 1] === '-') {
+                e.preventDefault();
+                const val = inputPPId.value;
+                const newVal = val.slice(0, pos - 2) + val.slice(pos);
+                const raw = newVal.replace(/[^0-9]/g, '');
+                const formatted = formatPromptPayIdReadable(raw);
+                inputPPId.value = formatted;
+                appState.promptPay.id = formatted;
+                saveState();
+                renderPromptPayCardState();
+                renderMainPromptPayQR();
+                const digitsBefore = val.slice(0, pos - 2).replace(/[^0-9]/g, '').length;
+                let newPos = 0, count = 0;
+                while (newPos < formatted.length && count < digitsBefore) {
+                  if (/[0-9]/.test(formatted[newPos])) count++;
+                  newPos++;
+                }
+                inputPPId.setSelectionRange(newPos, newPos);
+              }
+            }
+          });
+
           inputPPId.addEventListener('input', (e) => {
-            appState.promptPay.id = e.target.value.trim();
+            const oldVal = inputPPId.value;
+            const oldPos = inputPPId.selectionEnd || 0;
+            const digitsBefore = oldVal.slice(0, oldPos).replace(/[^0-9]/g, '').length;
+
+            const rawDigits = oldVal.replace(/[^0-9]/g, '');
+            const formatted = formatPromptPayIdReadable(rawDigits);
+
+            inputPPId.value = formatted;
+            appState.promptPay.id = formatted;
+
+            let newPos = 0;
+            let count = 0;
+            while (newPos < formatted.length && count < digitsBefore) {
+              if (/[0-9]/.test(formatted[newPos])) count++;
+              newPos++;
+            }
+            if (newPos < formatted.length && formatted[newPos] === '-') {
+              newPos++;
+            }
+            inputPPId.setSelectionRange(newPos, newPos);
+
             saveState();
             renderPromptPayCardState();
             renderMainPromptPayQR();
@@ -3892,6 +4056,7 @@
           btnTogglePPVis.addEventListener('click', () => {
             isPromptPayInputMasked = !isPromptPayInputMasked;
             syncPromptPayInputDisplay();
+            renderMainPromptPayQR();
           });
         }
 
