@@ -8,7 +8,6 @@
   <img src="https://img.shields.io/badge/AI-Gemini%203.5%20Flash%20Lite-blueviolet?style=flat-square" alt="Gemini AI" />
   <img src="https://img.shields.io/badge/Build-Single--File%20(%3C500KB)-orange?style=flat-square" alt="Single File" />
   <img src="https://img.shields.io/badge/Dependency-Zero%20Install-brightgreen?style=flat-square" alt="Zero Dependencies" />
-  <img src="https://img.shields.io/badge/Tests-239%2F239%20Passed-blue?style=flat-square" alt="Tests" />
 </p>
 
 ---
