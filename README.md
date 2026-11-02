@@ -1,42 +1,43 @@
-# 🍣 GeeBaht (กี่บาท)
+# 🍣 GeeBaht v2 (กี่บาท)
 
-GeeBaht: นับจานซูชิสายพาน คำนวณราคา Sushiro / ซูชิร้านดัง ส่ง QR PromptPay ให้เพื่อนโอนได้ทันที
+> **"กินไปเหอะแก... กี่บาทเดี๋ยวช่วยคิดเอง" ✨**  
+> เลิกตีกันในกรุ๊ปไลน์เรื่องหารบิล! สแกนใบเสร็จด้วย AI หรือนับจานซูชิสายพาน จิ้มคนกิน คำนวณเศษสตางค์เป๊ะ พร้อมยิง PromptPay QR จบปิ๊งในที่เดียว
 
-> เครื่องมือหารค่าซูชิสายพานแบบ "นับจาน" — จิ้มจานที่กิน เช็คบิล แล้วส่ง QR PromptPay ให้เพื่อนโอนได้ทันที ครบทุกสตางค์
+<p align="left">
+  <img src="https://img.shields.io/badge/Status-Ready%20to%20Use-success?style=flat-square" alt="Status" />
+  <img src="https://img.shields.io/badge/AI-Gemini%203.5%20Flash%20Lite-blueviolet?style=flat-square" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/Build-Single--File%20(%3C500KB)-orange?style=flat-square" alt="Single File" />
+  <img src="https://img.shields.io/badge/Dependency-Zero%20Install-brightgreen?style=flat-square" alt="Zero Dependencies" />
+  <img src="https://img.shields.io/badge/Tests-239%2F239%20Passed-blue?style=flat-square" alt="Tests" />
+</p>
 
 ---
 
-## ✨ ทำไมต้อง GeeBaht?
+## ⚡ สรุปสั้นๆ ตัวตึงทำอะไรได้บ้าง?
 
-ไปกินซูชิสายพานกับเพื่อน จานเยอะ สีเยอะ ราคาต่างกัน พอเช็คบิลก็ต้องนั่งจดและกดเครื่องคิดเลขหารกันเอง GeeBaht ทำให้ขั้นตอนนี้จบใน 3 หน้าจอ
+- 📸 **ถ่ายรูปสแกนบิล** — ใช้ Gemini 3.5 Flash-Lite แกะชื่อร้าน รายการ ราคา VAT และ Service Charge ใน < 1.5 วินาที
+- 🍣 **โหมดซูชิสายพาน** — มีพรีเซ็ตจานสีตามร้านจริง (Sushiro, Hamasushi, Katsu Midori, Sushi Express) จิ้มนับจานเรียลไทม์
+- 🍱 **Bento Pastel UI** — สมาชิก 8 สี 8 สไตล์ แตะเลือกคนกินง่าย มีปุ่มลัด `🌐 กองกลาง` กดทีเดียวหารทุกคน
+- 🔍 **Smart Bill Inspector** — มีหน้าต่างส่องรูปบิลคู่กับรายการอาหาร ซูมเข้า/ออก และแก้ราคาได้สดๆ ถ้ายอดไม่ตรง
+- 🧮 **Auto-Heal VAT & เศษสตางค์เป๊ะ** — เช็คให้เองว่าบิลไหนรวม VAT แล้ว ป้องกันคิดภาษีซ้อน พร้อมปัดเศษสตางค์ไม่ตกหล่นแม้แต่บาทเดียว
+- 📱 **พร้อมเพย์ / TrueMoney QR** — เจน QR Code ยอดเฉพาะบุคคล สแกนโอนได้ทันที เซฟสลิป PNG ส่งเข้า LINE จบงานไว
+- 🔒 **Safe & Clean 100%** — Single-file app เปิดบนเบราว์เซอร์ได้เลย ไม่เก็บข้อมูลบนเซิร์ฟเวอร์
 
-| ขั้นตอน | สิ่งที่ทำ |
-|---|---|
-| **1. ตั้งค่าโต๊ะ** | เลือกร้าน + ใส่ชื่อเพื่อน (คั่นด้วยเว้นวรรค หรือ คอมม่า เช่น `ฟาง เชอร์ กุ๊ก` หรือ `ฟาง, เชอร์, กุ๊ก` ) |
-| **2. นับจาน** | แตะที่จานตามสี/ราคา แยกแท็บรายคน + แท็บ "กองกลาง" (หารเท่ากัน) + เมนูพิเศษ |
-| **3. เช็คบิล** | สรุปยอดรายคน, ใส่ส่วนลดท้ายบิล, สร้าง PromptPay QR, บันทึกรูปสลิป |
+---
 
-## 🎯 ฟีเจอร์หลัก
+## 🚀 เริ่มใช้งานง่ายๆ ใน 1 นาที
 
-- 🍣 **พรีเซ็ตร้านซูชิ** — Sushiro, Hamasushi, Katsu Midori, Sushi Express / Sushi Plus และโหมด Custom (กำหนดราคาจานเอง) พร้อมสีจานตามร้านจริง
-- 👥 **นับจานรายคน + กองกลาง** — จานที่แชร์กันหารเท่าทุกคน, เมนูพิเศษใส่ชื่อ/ราคาเองได้
-- 🧾 **คำนวณภาษีตามร้าน** — Service Charge 10% และ VAT 7% ตั้งอัตโนมัติตามร้านที่เลือก
-- 🏷️ **ส่วนลดท้ายบิล** — ลดเป็นบาท (หารเท่ากัน / ตามสัดส่วนที่กิน) หรือลดเป็น %
-- 🔢 **ปัดเศษลงตัว 100%** — ยอดแต่ละคนรวมกันเท่ากับยอดทั้งโต๊ะเป๊ะทุกสตางค์ และคนที่ไม่ได้กินจะได้ยอด ฿0.00
-- 📲 **PromptPay QR** — สร้าง QR รายคนพร้อมยอดเงิน รองรับเบอร์มือถือ 10 หลัก (`06/08/09`) และเลขบัตรประชาชน 13 หลัก
-- 🖼️ **บันทึกสลิปเป็นรูป PNG** — ความละเอียดสูง บันทึกลงเครื่องได้
-- 💾 **จำข้อมูลอัตโนมัติ** — ปิดแท็บแล้วกลับมาทำต่อได้ และจำเบอร์ PromptPay ไว้ใช้มื้อถัดไป
+1. **สายเปิดใช้เลย (Zero Setup):**  
+2. **สายเปิดโหมด AI สแกนใบเสร็จ:**  
 
-## 🔒 ความเป็นส่วนตัว
+---
 
-- ทำงาน **ฝั่งเบราว์เซอร์ล้วน ๆ** ไม่มี Backend ไม่มีฐานข้อมูล
-- ข้อมูลทั้งหมด (รายชื่อ, จาน, เบอร์ PromptPay) เก็บใน `localStorage` ของเครื่องคุณเท่านั้น
-- เลขพร้อมเพย์ในสลิปจะถูก Mask บางส่วนอัตโนมัติ (เช่น `08X-XXX-1234`)
+## 🛠 Tech Stack
 
-## 🛠️ Tech Stack
+- **Frontend:** Vanilla HTML5 / Tailwind CSS / Vanilla JS (Single file `< 500 KB` ไร้ npm bloat)
+- **AI Backend Proxy:** Cloudflare Workers (Serverless, Rate-limited, Gemini 3.5 Flash-Lite)
+- **Standards:** PromptPay EMVCo QR (CRC16) + TrueMoney Wallet 15 หลัก
 
-- **Vanilla HTML / CSS / JavaScript** — ไฟล์เดียว [`index.html`](./index.html) ไม่ต้อง Build
-- [Tailwind CSS](https://tailwindcss.com/) (CDN) — จัด Layout
-- [QRCode.js](https://github.com/davidshimjs/qrcodejs) — สร้าง QR
-- ฟอนต์ [Kanit](https://fonts.google.com/specimen/Kanit) — Google Fonts
-- สลิป PNG วาดด้วย HTML5 Canvas โดยตรง
+---
+
+*มิตรภาพไม่พัง เพราะตังค์หารเป๊ะ 🍣✨ ฝากกด ⭐ Star บน GitHub เป็นกำลังใจด้วยน้า!*
